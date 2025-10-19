@@ -46,10 +46,11 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ project, o
     alert('Project submitted for verification!');
   };
 
-  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://reviews.layrr.space/${formData.slug}`;
+  const livePageUrl = `https://reviews.layrr.space/${formData.slug}`;
+  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(livePageUrl)}`;
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8">
+    <div className="max-w-4xl mx-auto space-y-8 animate-fade-in-up">
        <div>
         <button onClick={onBack} className="mb-4 text-sm font-medium text-primary-600 hover:text-primary-800 dark:text-primary-400 dark:hover:text-primary-200">
             &larr; Back to Projects
@@ -84,7 +85,7 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ project, o
                     <img src={qrCodeUrl} alt="QR Code" className="w-32 h-32 rounded-lg bg-white p-1"/>
                     <div>
                         <p className="text-sm text-gray-500 dark:text-gray-400">Scan this code to view the live page.</p>
-                        <a href={`https://reviews.layrr.space/${formData.slug}`} target="_blank" rel="noopener noreferrer" className="text-sm text-primary-600 hover:underline dark:text-primary-400">
+                        <a href={livePageUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-primary-600 hover:underline dark:text-primary-400">
                             reviews.layrr.space/{formData.slug}
                         </a>
                     </div>

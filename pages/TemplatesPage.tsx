@@ -12,7 +12,7 @@ const TemplateDetailView: React.FC<{ template: Template; onBack: () => void; onU
     const commission = (template.price * 0.25).toFixed(2);
     
     return (
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-4xl mx-auto animate-fade-in-up">
             <button onClick={onBack} className="mb-8 text-sm font-medium text-primary-600 hover:text-primary-800 dark:text-primary-400 dark:hover:text-primary-200">
                 &larr; Back to Library
             </button>
@@ -27,8 +27,8 @@ const TemplateDetailView: React.FC<{ template: Template; onBack: () => void; onU
                             </span>
                         </div>
                         <div className="mt-4 sm:mt-0 text-left sm:text-right">
-                             <p className="text-2xl font-bold text-gray-900 dark:text-white">${template.price.toFixed(2)}</p>
-                             <p className="text-sm text-green-600 dark:text-green-400">You earn ${commission}</p>
+                             <p className="text-2xl font-bold text-gray-900 dark:text-white">₹{template.price.toFixed(2)}</p>
+                             <p className="text-sm text-green-600 dark:text-green-400">You earn ₹{commission}</p>
                         </div>
                     </div>
                     
@@ -68,7 +68,7 @@ export const TemplatesPage: React.FC<TemplatesPageProps> = ({ templates, onUseTe
   const categories = ['All', ...Array.from(new Set(templates.map(t => t.category)))];
 
   return (
-    <div className="max-w-7xl mx-auto">
+    <div className="max-w-7xl mx-auto animate-fade-in-up">
       <div className="mb-8 text-center">
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Templates Library</h1>
         <p className="text-gray-500 dark:text-gray-400 mt-1">Browse ready-to-use designs built for speed and style.</p>

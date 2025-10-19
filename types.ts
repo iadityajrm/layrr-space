@@ -26,6 +26,8 @@ export interface Project {
   status: 'Active' | 'Pending Verification' | 'Completed' | 'Archived';
   brandName: string;
   proofImageUrl: string | null;
+  price: number;
+  commission: number;
 }
 
 export interface Template {
@@ -47,4 +49,5 @@ export interface User {
   mobile: string;
   upiId: string;
   totalEarnings: number;
+  password?: string;
 }

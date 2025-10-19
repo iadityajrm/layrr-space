@@ -4,7 +4,7 @@ import { TrashIcon } from '../components/Icons';
 
 interface ProfilePageProps {
   user: User;
-  setUser: React.Dispatch<React.SetStateAction<User>>;
+  setUser: React.Dispatch<React.SetStateAction<User | null>>;
 }
 
 export const ProfilePage: React.FC<ProfilePageProps> = ({ user, setUser }) => {
@@ -13,12 +13,14 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ user, setUser }) => {
   const [deleteEmailInput, setDeleteEmailInput] = useState('');
 
   useEffect(() => {
-    setFormData(user);
+    if(user) {
+        setFormData(user);
+    }
   }, [user]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData(prev => ({ ...prev, [name]: value } as User));
   };
 
   const handleSave = (e: React.FormEvent) => {
@@ -30,8 +32,12 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ user, setUser }) => {
   
   const isDeleteDisabled = deleteEmailInput !== user.email;
 
+  if (!user) {
+      return null; // Or a loading spinner
+  }
+
   return (
-    <div className="max-w-4xl mx-auto space-y-8">
+    <div className="max-w-4xl mx-auto space-y-8 animate-fade-in-up">
       <div>
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Profile</h1>
         <p className="text-gray-500 dark:text-gray-400 mt-1">Manage your personal information and account settings.</p>

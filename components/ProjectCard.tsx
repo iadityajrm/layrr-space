@@ -24,6 +24,9 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ project, onSelect }) =
             </span>
         </div>
         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 break-all">/{project.slug}</p>
+        <div className="mt-2">
+            <p className="text-sm text-green-600 dark:text-green-400 font-medium">Commission: ₹{project.commission.toFixed(2)}</p>
+        </div>
       </div>
 
       <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400 flex justify-between items-center">

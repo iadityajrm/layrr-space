@@ -41,11 +41,11 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ template, onClose, o
             <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg space-y-2">
               <div className="flex justify-between items-center text-gray-800 dark:text-gray-200">
                 <span>Template Price:</span>
-                <span className="font-medium">${template.price.toFixed(2)}</span>
+                <span className="font-medium">₹{template.price.toFixed(2)}</span>
               </div>
                <div className="flex justify-between items-center text-sm text-green-600 dark:text-green-400">
                 <span>Your Commission (25%):</span>
-                <span className="font-medium">+ ${commission}</span>
+                <span className="font-medium">+ ₹{commission}</span>
               </div>
             </div>
 

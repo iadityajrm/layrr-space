@@ -26,8 +26,8 @@ export const TemplateCard: React.FC<TemplateCardProps> = ({ template, onSelect }
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 h-10">{template.description}</p>
         </div>
         <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700 flex justify-between items-baseline">
-            <p className="text-lg font-bold text-gray-800 dark:text-white">${template.price.toFixed(2)}</p>
-            <p className="text-xs text-green-600 dark:text-green-400 font-medium">Earn ${commission}</p>
+            <p className="text-lg font-bold text-gray-800 dark:text-white">₹{template.price.toFixed(2)}</p>
+            <p className="text-xs text-green-600 dark:text-green-400 font-medium">Earn ₹{commission}</p>
         </div>
       </div>
     </button>
