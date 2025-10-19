@@ -1,0 +1,7 @@
+{
+  "name": "Layrr Dashboard",
+  "description": "A clean, responsive dashboard layout with a left sidebar navigation and a main content area, built with React and Tailwind CSS. It features stat cards, a recent activity feed, and a dark mode toggle.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
