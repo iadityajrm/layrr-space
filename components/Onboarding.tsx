@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { TemplateIcon, BriefcaseIcon, CheckSquareIcon } from './Icons';
 
@@ -7,7 +8,7 @@ interface OnboardingProps {
 
 const OnboardingStep: React.FC<{ icon: React.ReactNode; title: string; description: string, delay: string }> = ({ icon, title, description, delay }) => (
     <div className="flex items-start space-x-4 animate-fade-in-up opacity-0" style={{ animationDelay: delay }}>
-        <div className="flex-shrink-0 bg-primary-100 dark:bg-primary-900/50 p-3 rounded-lg">
+        <div className="flex-shrink-0 bg-primary-100 dark:bg-primary-900/50 p-3 rounded-xl">
             {icon}
         </div>
         <div>
@@ -48,7 +49,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
             <div className="mt-10 animate-fade-in-up opacity-0" style={{ animationDelay: '400ms' }}>
                 <button 
                     onClick={onComplete}
-                    className="w-full bg-primary-600 hover:bg-primary-700 text-white font-bold py-3 px-6 rounded-lg transition-colors duration-200"
+                    className="w-full bg-primary-600 hover:bg-primary-700 text-white font-bold py-3 px-6 rounded-xl transition-colors duration-200"
                 >
                     Go to Dashboard
                 </button>

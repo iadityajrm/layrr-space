@@ -55,15 +55,35 @@ function App() {
   const [isSidebarOpen, setSidebarOpen] = useState(false);
 
   const [templateToBuy, setTemplateToBuy] = useState<Template | null>(null);
+  const [theme, setTheme] = useState('light');
+  const [searchQuery, setSearchQuery] = useState('');
 
-  // Effect to handle theme (light/dark)
+
+  // Effect to initialize theme from localStorage or system preference
   useEffect(() => {
-    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
+    const savedTheme = localStorage.getItem('theme');
+    const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    if (savedTheme) {
+      setTheme(savedTheme);
+    } else if (prefersDark) {
+      setTheme('dark');
     }
   }, []);
+
+  // Effect to apply theme class and save to localStorage
+  useEffect(() => {
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(prev => (prev === 'light' ? 'dark' : 'light'));
+  };
 
   const handleLoginSuccess = (loggedInUser: User) => {
     setUser(loggedInUser);
@@ -123,7 +143,7 @@ function App() {
 
   if (!user) {
     return (
-       <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
+       <div className="flex items-center justify-center min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors">
             {authPage === 'login' && <LoginPage onLoginSuccess={handleLoginSuccess} onSwitchToSignup={() => setAuthPage('signup')} />}
             {authPage === 'signup' && <SignupPage onSignupSuccess={handleSignupSuccess} onSwitchToLogin={() => setAuthPage('login')} setUser={setUser} />}
        </div>
@@ -131,7 +151,7 @@ function App() {
   }
 
   return (
-    <div className="flex h-screen bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200">
+    <div className="flex h-screen bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-200">
       <Sidebar 
         activeItem={currentPage} 
         onNavigate={(page) => {
@@ -141,15 +161,18 @@ function App() {
         }}
         onLogout={handleLogout}
         isSidebarOpen={isSidebarOpen}
+        theme={theme}
+        toggleTheme={toggleTheme}
       />
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header 
             user={user}
-            pageTitle={selectedProject ? selectedProject.name : currentPage}
             onToggleSidebar={() => setSidebarOpen(!isSidebarOpen)}
             isSidebarOpen={isSidebarOpen}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
         />
-        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 dark:bg-gray-900 p-6">
+        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-slate-100 dark:bg-slate-950 p-6">
           {renderPage()}
         </main>
       </div>

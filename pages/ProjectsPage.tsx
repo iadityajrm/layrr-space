@@ -1,3 +1,4 @@
+
 import React from 'react';
 import type { Project } from '../types';
 import { ProjectCard } from '../components/ProjectCard';
@@ -12,8 +13,8 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({ projects, onSelectPr
     <div className="max-w-7xl mx-auto animate-fade-in-up">
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Projects</h1>
-          <p className="text-gray-500 dark:text-gray-400 mt-1">All your active templates and brand pages in one place.</p>
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Projects</h1>
+          <p className="text-slate-500 dark:text-slate-400 mt-1">All your active templates and brand pages in one place.</p>
         </div>
       </div>
 

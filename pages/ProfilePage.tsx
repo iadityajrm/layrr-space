@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import type { User } from '../types';
 import { TrashIcon } from '../components/Icons';
@@ -39,43 +40,43 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ user, setUser }) => {
   return (
     <div className="max-w-4xl mx-auto space-y-8 animate-fade-in-up">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Profile</h1>
-        <p className="text-gray-500 dark:text-gray-400 mt-1">Manage your personal information and account settings.</p>
+        <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Profile</h1>
+        <p className="text-slate-500 dark:text-slate-400 mt-1">Manage your personal information and account settings.</p>
       </div>
 
       {/* Profile Information Form */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
+      <div className="bg-white dark:bg-slate-800/50 rounded-2xl shadow-md border border-slate-200 dark:border-slate-800">
         <form onSubmit={handleSave}>
           <div className="p-6 space-y-6">
-            <h3 className="text-lg font-medium leading-6 text-gray-900 dark:text-white">Personal Information</h3>
+            <h3 className="text-lg font-medium leading-6 text-slate-900 dark:text-white">Personal Information</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div>
-                <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 dark:text-gray-300">First Name</label>
-                <input type="text" name="firstName" id="firstName" value={formData.firstName} onChange={handleInputChange} className="mt-1 block w-full px-4 py-3 border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-0 focus:border-primary-500 bg-white dark:bg-gray-700"/>
+                <label htmlFor="firstName" className="block text-sm font-medium text-slate-700 dark:text-slate-300">First Name</label>
+                <input type="text" name="firstName" id="firstName" value={formData.firstName} onChange={handleInputChange} className="mt-1 block w-full px-4 py-3 border-slate-300 dark:border-slate-600 rounded-lg shadow-sm focus:ring-0 focus:border-primary-500 bg-white dark:bg-slate-700"/>
               </div>
               <div>
-                <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Last Name</label>
-                <input type="text" name="lastName" id="lastName" value={formData.lastName} onChange={handleInputChange} className="mt-1 block w-full px-4 py-3 border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-0 focus:border-primary-500 bg-white dark:bg-gray-700"/>
+                <label htmlFor="lastName" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Last Name</label>
+                <input type="text" name="lastName" id="lastName" value={formData.lastName} onChange={handleInputChange} className="mt-1 block w-full px-4 py-3 border-slate-300 dark:border-slate-600 rounded-lg shadow-sm focus:ring-0 focus:border-primary-500 bg-white dark:bg-slate-700"/>
               </div>
               <div>
-                <label htmlFor="city" className="block text-sm font-medium text-gray-700 dark:text-gray-300">City</label>
-                <input type="text" name="city" id="city" value={formData.city} onChange={handleInputChange} className="mt-1 block w-full px-4 py-3 border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-0 focus:border-primary-500 bg-white dark:bg-gray-700"/>
+                <label htmlFor="city" className="block text-sm font-medium text-slate-700 dark:text-slate-300">City</label>
+                <input type="text" name="city" id="city" value={formData.city} onChange={handleInputChange} className="mt-1 block w-full px-4 py-3 border-slate-300 dark:border-slate-600 rounded-lg shadow-sm focus:ring-0 focus:border-primary-500 bg-white dark:bg-slate-700"/>
               </div>
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Email Address</label>
-                <input type="email" name="email" id="email" value={formData.email} onChange={handleInputChange} className="mt-1 block w-full px-4 py-3 border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-0 focus:border-primary-500 bg-gray-100 dark:bg-gray-900" readOnly/>
+                <label htmlFor="email" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Email Address</label>
+                <input type="email" name="email" id="email" value={formData.email} onChange={handleInputChange} className="mt-1 block w-full px-4 py-3 border-slate-300 dark:border-slate-600 rounded-lg shadow-sm focus:ring-0 focus:border-primary-500 bg-slate-100 dark:bg-slate-900" readOnly/>
               </div>
               <div>
-                <label htmlFor="mobile" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Mobile Number</label>
-                <input type="tel" name="mobile" id="mobile" value={formData.mobile} onChange={handleInputChange} className="mt-1 block w-full px-4 py-3 border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-0 focus:border-primary-500 bg-white dark:bg-gray-700"/>
+                <label htmlFor="mobile" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Mobile Number</label>
+                <input type="tel" name="mobile" id="mobile" value={formData.mobile} onChange={handleInputChange} className="mt-1 block w-full px-4 py-3 border-slate-300 dark:border-slate-600 rounded-lg shadow-sm focus:ring-0 focus:border-primary-500 bg-white dark:bg-slate-700"/>
               </div>
               <div>
-                <label htmlFor="upiId" className="block text-sm font-medium text-gray-700 dark:text-gray-300">UPI ID</label>
-                <input type="text" name="upiId" id="upiId" value={formData.upiId} onChange={handleInputChange} className="mt-1 block w-full px-4 py-3 border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-0 focus:border-primary-500 bg-white dark:bg-gray-700"/>
+                <label htmlFor="upiId" className="block text-sm font-medium text-slate-700 dark:text-slate-300">UPI ID</label>
+                <input type="text" name="upiId" id="upiId" value={formData.upiId} onChange={handleInputChange} className="mt-1 block w-full px-4 py-3 border-slate-300 dark:border-slate-600 rounded-lg shadow-sm focus:ring-0 focus:border-primary-500 bg-white dark:bg-slate-700"/>
               </div>
             </div>
           </div>
-          <div className="px-6 py-4 bg-gray-50 dark:bg-gray-800/50 text-right rounded-b-lg">
+          <div className="px-6 py-4 bg-slate-50 dark:bg-slate-800/80 text-right rounded-b-2xl">
             <button type="submit" className="bg-primary-600 hover:bg-primary-700 text-white font-medium py-2 px-4 rounded-lg shadow-sm transition-colors duration-200">
               Save Changes
             </button>
@@ -84,10 +85,10 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ user, setUser }) => {
       </div>
 
       {/* Delete Account Section */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
+      <div className="bg-white dark:bg-slate-800/50 rounded-2xl shadow-md border border-slate-200 dark:border-slate-800">
          <div className="p-6">
             <h3 className="text-lg font-medium leading-6 text-red-700 dark:text-red-400">Delete Account</h3>
-            <div className="mt-2 max-w-xl text-sm text-gray-500 dark:text-gray-400">
+            <div className="mt-2 max-w-xl text-sm text-slate-500 dark:text-slate-400">
                 <p>Once you delete your account, there is no going back. Please be certain.</p>
             </div>
             <div className="mt-5">
@@ -99,7 +100,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ user, setUser }) => {
                 </button>
             </div>
             {showDeleteConfirm && (
-                <div className="mt-6 p-4 border-l-4 border-red-400 bg-red-50 dark:bg-red-900/20">
+                <div className="mt-6 p-4 border-l-4 border-red-400 bg-red-50 dark:bg-red-900/20 rounded-r-lg">
                     <div className="flex">
                         <div className="flex-shrink-0">
                             <TrashIcon className="h-5 w-5 text-red-400" aria-hidden="true" />
@@ -113,11 +114,11 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ user, setUser }) => {
                                 value={deleteEmailInput}
                                 onChange={(e) => setDeleteEmailInput(e.target.value)}
                                 autoComplete="off"
-                                className="mt-2 block w-full max-w-sm px-4 py-3 border-red-300 dark:border-red-500 rounded-md shadow-sm focus:ring-0 focus:border-red-500 bg-white dark:bg-gray-700"
+                                className="mt-2 block w-full max-w-sm px-4 py-3 border-red-300 dark:border-red-500 rounded-lg shadow-sm focus:ring-0 focus:border-red-500 bg-white dark:bg-slate-700"
                             />
                             <button
                                 disabled={isDeleteDisabled}
-                                className="mt-4 w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 border border-transparent font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:bg-red-300 dark:disabled:bg-red-800 disabled:cursor-not-allowed"
+                                className="mt-4 w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 border border-transparent font-medium rounded-lg shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:bg-red-300 dark:disabled:bg-red-800 disabled:cursor-not-allowed"
                             >
                                 Delete My Account
                             </button>

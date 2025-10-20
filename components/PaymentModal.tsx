@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import type { Template } from '../types';
 
@@ -31,15 +32,15 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ template, onClose, o
   const commission = (template.price * 0.25).toFixed(2);
 
   return (
-    <div className="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 transition-opacity duration-300">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 sm:p-8 w-full max-w-md m-4 transform transition-all duration-300 scale-100">
+    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 transition-opacity duration-300">
+      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl p-6 sm:p-8 w-full max-w-md m-4 transform transition-all duration-300 scale-100">
         {!isSuccess ? (
           <>
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Confirm Purchase</h2>
-            <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">You are about to purchase a license for the "{template.name}" template.</p>
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Confirm Purchase</h2>
+            <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">You are about to purchase a license for the "{template.name}" template.</p>
             
-            <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg space-y-2">
-              <div className="flex justify-between items-center text-gray-800 dark:text-gray-200">
+            <div className="mt-6 p-4 bg-slate-50 dark:bg-slate-700/50 rounded-xl space-y-2">
+              <div className="flex justify-between items-center text-slate-800 dark:text-slate-200">
                 <span>Template Price:</span>
                 <span className="font-medium">₹{template.price.toFixed(2)}</span>
               </div>
@@ -53,7 +54,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ template, onClose, o
               <button
                 onClick={onClose}
                 disabled={isProcessing}
-                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50"
+                className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-600 disabled:opacity-50"
               >
                 Cancel
               </button>
@@ -81,8 +82,8 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ template, onClose, o
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
                 </svg>
              </div>
-             <h3 className="mt-4 text-lg font-medium text-gray-900 dark:text-white">Payment Successful!</h3>
-             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Your new project is being created...</p>
+             <h3 className="mt-4 text-lg font-medium text-slate-900 dark:text-white">Payment Successful!</h3>
+             <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Your new project is being created...</p>
           </div>
         )}
       </div>
