@@ -1,201 +1,167 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Sidebar } from './components/Sidebar';
-import type { NavItem, StatCardData, Project, Template, User } from './types';
-import { TemplateIcon, CheckSquareIcon, BarChartIcon, SettingsIcon, BriefcaseIcon, UserIcon, DollarSignIcon } from './components/Icons';
 
+import React, { useState, useEffect } from 'react';
+import { Sidebar } from './components/Sidebar';
+import { Header } from './components/Header';
 import { DashboardPage } from './pages/DashboardPage';
 import { ProjectsPage } from './pages/ProjectsPage';
 import { TemplatesPage } from './pages/TemplatesPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { ProjectDetailPage } from './pages/ProjectDetailPage';
-import { PaymentModal } from './components/PaymentModal';
 import { LoginPage } from './pages/LoginPage';
 import { SignupPage } from './pages/SignupPage';
+import { PaymentModal } from './components/PaymentModal';
 
-type View = 'login' | 'signup' | 'dashboard';
+import type { User, Project, Template, StatCardData } from './types';
+import { DashboardIcon, FolderIcon, CheckSquareIcon } from './components/Icons';
 
-const App: React.FC = () => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [currentView, setCurrentView] = useState<View>('login');
-  const [authViewAnimation, setAuthViewAnimation] = useState('animate-fade-in');
+// Mock Data
+const mockUser: User = {
+    firstName: 'Alex',
+    lastName: 'Doe',
+    city: 'San Francisco',
+    email: 'alex.doe@layrr.space',
+    mobile: '555-123-4567',
+    upiId: 'alex.doe@bank',
+    totalEarnings: 249.75,
+};
+
+const mockProjects: Project[] = [
+    { id: 'proj1', name: 'Sanjay\'s Cafe Page', slug: 'sanjays-cafe', templateType: 'Cafe Landing Page', createdDate: '2023-10-26', status: 'Active', brandName: 'Sanjay\'s Cafe', proofImageUrl: 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80', price: 999, commission: 249.75 },
+    { id: 'proj2', name: 'Gupta\'s Electronics', slug: 'gupta-electronics', templateType: 'Retail Storefront', createdDate: '2023-10-22', status: 'Pending Verification', brandName: 'Gupta\'s Electronics', proofImageUrl: null, price: 1499, commission: 374.75 },
+    { id: 'proj3', name: 'The Yoga House', slug: 'the-yoga-house', templateType: 'Fitness Studio', createdDate: '2023-09-15', status: 'Completed', brandName: 'The Yoga House', proofImageUrl: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2120&q=80', price: 1999, commission: 499.75 },
+    { id: 'proj4', name: 'Archived Project', slug: 'archived-project', templateType: 'Generic Template', createdDate: '2023-01-01', status: 'Archived', brandName: 'Old Business', proofImageUrl: null, price: 500, commission: 125.00 },
+];
+
+const mockTemplates: Template[] = [
+    { id: 'temp1', name: 'Cafe Landing Page', category: 'Food & Beverage', description: 'A modern, single-page site for cafes and restaurants.', longDescription: 'Engage your customers with a beautiful, mobile-friendly landing page. Showcase your menu, photos, location, and contact information. Perfect for cafes, bakeries, and small restaurants looking for a strong online presence.', imageUrl: 'https://images.unsplash.com/photo-1511920183353-3c9c9b02ce7c?auto=format&fit=crop&w=800&q=60', integrations: ['Google Maps', 'Social Media'], price: 999 },
+    { id: 'temp2', name: 'Retail Storefront', category: 'E-commerce', description: 'A clean and simple storefront for local shops.', longDescription: 'Launch your online store quickly with this easy-to-use template. It includes a product gallery, item details, and a clear call-to-action. Ideal for boutiques, electronics shops, and local artisans.', imageUrl: 'https://images.unsplash.com/photo-1556740738-b6a63e27c4df?auto=format&fit=crop&w=800&q=60', integrations: ['UPI Payments', 'WhatsApp'], price: 1499 },
+    { id: 'temp3', name: 'Fitness Studio', category: 'Health & Wellness', description: 'Promote classes and schedules for gyms or studios.', longDescription: 'Attract new members with a dynamic website. This template features sections for class schedules, trainer profiles, testimonials, and membership pricing. Great for yoga studios, gyms, and personal trainers.', imageUrl: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?auto=format&fit=crop&w=800&q=60', integrations: ['Booking Calendar', 'Instagram Feed'], price: 1999 },
+    { id: 'temp4', name: 'Portfolio for Creatives', category: 'Services', description: 'A stylish portfolio for photographers and designers.', longDescription: 'Showcase your best work with this visually-focused portfolio template. It features a stunning gallery, an "about me" section, and a contact form to help you land your next client. Optimized for high-resolution images.', imageUrl: 'https://images.unsplash.com/photo-1522204523234-8729aa6e3d5f?auto=format&fit=crop&w=800&q=60', integrations: ['Contact Form', 'Social Media'], price: 1299 },
+];
+
+const mockStats: StatCardData[] = [
+    { title: 'Total Earnings', value: `₹${mockUser.totalEarnings.toFixed(2)}`, icon: <DashboardIcon className="h-6 w-6 text-primary-600 dark:text-primary-300" /> },
+    { title: 'Active Projects', value: mockProjects.filter(p => p.status === 'Active' || p.status === 'Pending Verification').length.toString(), icon: <FolderIcon className="h-6 w-6 text-primary-600 dark:text-primary-300" /> },
+    { title: 'Completed Sales', value: mockProjects.filter(p => p.status === 'Completed').length.toString(), icon: <CheckSquareIcon className="h-6 w-6 text-primary-600 dark:text-primary-300" /> },
+];
+
+function App() {
+  const [user, setUser] = useState<User | null>(null);
+  const [authPage, setAuthPage] = useState<'login' | 'signup'>('login');
   
-  const [activeNavItem, setActiveNavItem] = useState<string>('Dashboard');
-  const [isDarkMode, setDarkMode] = useState(false);
-  const [viewingProject, setViewingProject] = useState<Project | null>(null);
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
+  const [currentPage, setCurrentPage] = useState('Dashboard');
+  const [projects, setProjects] = useState<Project[]>(mockProjects);
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [isSidebarOpen, setSidebarOpen] = useState(false);
 
+  const [templateToBuy, setTemplateToBuy] = useState<Template | null>(null);
+
+  // Effect to handle theme (light/dark)
   useEffect(() => {
-    if (isDarkMode) {
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
       document.documentElement.classList.add('dark');
     } else {
       document.documentElement.classList.remove('dark');
     }
-  }, [isDarkMode]);
-
-  const toggleDarkMode = useCallback(() => {
-    setDarkMode(prev => !prev);
   }, []);
 
-  const [user, setUser] = useState<User | null>(null);
-
-  const [projects, setProjects] = useState<Project[]>([
-    { id: '1', name: 'Zoca Cafe Reviews', slug: 'zoca-cafe', templateType: 'Review Page', createdDate: '2023-10-26', status: 'Completed', brandName: 'Zoca Cafe', proofImageUrl: 'https://placehold.co/400x300/3b82f6/ffffff?text=Proof+Image', price: 4999, commission: 1249.75 },
-    { id: '2', name: 'Quantum Leap Landing', slug: 'quantum-launch', templateType: 'Landing Page', createdDate: '2023-10-22', status: 'Active', brandName: 'Quantum Leap', proofImageUrl: null, price: 7999, commission: 1999.75 },
-    { id: '3', name: 'My Portfolio V2', slug: 'portfolio-v2', templateType: 'Portfolio', createdDate: '2023-09-15', status: 'Pending Verification', brandName: 'Alex Doe Portfolio', proofImageUrl: 'https://placehold.co/400x300/f59e0b/ffffff?text=Pending+Proof', price: 3999, commission: 999.75 },
-    { id: '4', name: 'Archived Campaign', slug: 'old-campaign', templateType: 'Landing Page', createdDate: '2023-01-05', status: 'Archived', brandName: 'Old Campaign Co.', proofImageUrl: null, price: 7999, commission: 1999.75 },
-    { id: '5', name: 'Nebula SaaS', slug: 'nebula-saas', templateType: 'Landing Page', createdDate: '2023-11-01', status: 'Active', brandName: 'Nebula', proofImageUrl: null, price: 7999, commission: 1999.75 },
-    { id: '6', name: 'E-commerce Redesign', slug: 'ecom-v2', templateType: 'Storefront', createdDate: '2023-08-19', status: 'Active', brandName: 'E-com Store', proofImageUrl: null, price: 9999, commission: 2499.75 },
-  ]);
-  
-  const navItems: NavItem[] = [
-    { name: 'Dashboard', icon: <BarChartIcon className="w-5 h-5" /> },
-    { name: 'Projects', icon: <BriefcaseIcon className="w-5 h-5" /> },
-    { name: 'Templates', icon: <TemplateIcon className="w-5 h-5" /> },
-    { name: 'Profile', icon: <UserIcon className="w-5 h-5" /> },
-    { name: 'Settings', icon: <SettingsIcon className="w-5 h-5" /> },
-  ];
-
-  const stats: StatCardData[] = [
-    { title: 'Active Projects', value: projects.filter(p => p.status === 'Active').length.toString(), icon: <BriefcaseIcon className="w-8 h-8 text-primary-500" /> },
-    { title: 'Pending Verification', value: projects.filter(p => p.status === 'Pending Verification').length.toString(), icon: <CheckSquareIcon className="w-8 h-8 text-primary-500" /> },
-    { title: 'Total Earnings', value: `₹${user?.totalEarnings.toFixed(2) ?? '0.00'}`, icon: <DollarSignIcon className="w-8 h-8 text-primary-500" /> },
-  ];
-
-  const templates: Template[] = [
-    { id: 't1', name: 'Review Collector', category: 'Marketing', description: 'A clean page to collect and display customer reviews.', longDescription: 'This template provides a streamlined, user-friendly interface for customers to submit reviews and for you to display them beautifully. It includes features like star ratings, photo uploads, and social sharing to maximize engagement.', imageUrl: 'https://placehold.co/600x400/3b82f6/ffffff?text=Review+Template', integrations: ['Google Reviews', 'Yelp'], price: 4999 },
-    { id: 't2', name: 'SaaS Landing Page', category: 'Startup', description: 'High-converting landing page for your new product.', longDescription: 'Launch your next big idea with this high-converting landing page. It features clear call-to-actions, a pricing section, feature highlights, and testimonials, all designed to turn visitors into customers.', imageUrl: 'https://placehold.co/600x400/10b981/ffffff?text=SaaS+Template', integrations: ['Stripe', 'Mailchimp'], price: 7999 },
-    { id: 't3', name: 'Personal Portfolio', category: 'Creative', description: 'Showcase your work with this elegant portfolio.', longDescription: 'A minimalist and elegant portfolio template perfect for designers, developers, and photographers. The grid-based layout and smooth animations let your work speak for itself.', imageUrl: 'https://placehold.co/600x400/8b5cf6/ffffff?text=Portfolio', integrations: ['Framer', 'Dribbble'], price: 3999 },
-    { id: 't4', name: 'Agency Homepage', category: 'Business', description: 'Professional homepage for creative agencies.', longDescription: 'Put your agency\'s best foot forward with this professional and modern homepage. Highlight your services, showcase your team, and feature your best projects in a compelling narrative.', imageUrl: 'https://placehold.co/600x400/f59e0b/ffffff?text=Agency+Template', integrations: ['HubSpot', 'Salesforce'], price: 9999 },
-  ];
-  
-  const switchAuthView = (targetView: 'login' | 'signup') => {
-      setAuthViewAnimation('animate-fade-out');
-      setTimeout(() => {
-          setCurrentView(targetView);
-          setAuthViewAnimation('animate-fade-in');
-      }, 300); // Duration of fade-out animation
-  };
-
   const handleLoginSuccess = (loggedInUser: User) => {
-    setAuthViewAnimation('animate-fade-out');
-      setTimeout(() => {
-        setUser(loggedInUser);
-        setIsAuthenticated(true);
-        setCurrentView('dashboard');
-    }, 300);
+    setUser(loggedInUser);
   };
-
+  
   const handleSignupSuccess = () => {
-    // This is called after the onboarding fade-out is complete
-    setIsAuthenticated(true);
-    setCurrentView('dashboard');
+    // After onboarding is complete, switch to the main app (dashboard)
+    // The user state is already set in the SignupPage component
+    setCurrentPage('Dashboard');
   };
   
   const handleLogout = () => {
-      setIsAuthenticated(false);
       setUser(null);
-      setCurrentView('login');
-      setAuthViewAnimation('animate-fade-in');
-  };
-
-  const handleStartPayment = (template: Template) => {
-    setSelectedTemplate(template);
-    setShowPaymentModal(true);
+      setAuthPage('login');
   };
   
   const handlePaymentSuccess = () => {
-      if (!selectedTemplate) return;
-      const commission = selectedTemplate.price * 0.25;
+    if (!templateToBuy) return;
 
-      const newProject: Project = {
-        id: `p${projects.length + 1}`,
-        name: `${selectedTemplate.name} Project`,
-        slug: `${selectedTemplate.name.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}`,
-        templateType: selectedTemplate.name,
-        createdDate: new Date().toISOString().split('T')[0],
-        status: 'Active',
-        brandName: 'Your New Brand',
-        proofImageUrl: null,
-        price: selectedTemplate.price,
-        commission: commission,
-      };
+    const newProject: Project = {
+      id: `proj${projects.length + 1}`,
+      name: `New ${templateToBuy.name} Project`,
+      slug: `new-${templateToBuy.name.toLowerCase().replace(/ /g, '-')}`,
+      templateType: templateToBuy.name,
+      createdDate: new Date().toISOString().split('T')[0],
+      status: 'Pending Verification',
+      brandName: 'New Brand',
+      proofImageUrl: null,
+      price: templateToBuy.price,
+      commission: templateToBuy.price * 0.25,
+    };
 
-      setProjects(prev => [newProject, ...prev]);
-      if(user) {
-        setUser({...user, totalEarnings: user.totalEarnings + commission });
-      }
-
-      setShowPaymentModal(false);
-      setSelectedTemplate(null);
-      setActiveNavItem('Projects');
-      setViewingProject(newProject);
+    setProjects(prev => [newProject, ...prev]);
+    setTemplateToBuy(null);
+    setCurrentPage('Projects'); // Navigate to projects page
+    setSelectedProject(newProject); // Go directly to the new project detail
   };
-  
-  const handleUpdateProject = (updatedProject: Project) => {
-    setProjects(projects.map(p => p.id === updatedProject.id ? updatedProject : p));
-  };
-  
-  const renderDashboardContent = () => {
-    if (viewingProject) {
-        return <ProjectDetailPage 
-            project={viewingProject} 
-            onUpdateProject={handleUpdateProject}
-            onBack={() => setViewingProject(null)} 
-        />;
+
+
+  const renderPage = () => {
+    if (selectedProject) {
+      return <ProjectDetailPage project={selectedProject} user={user!} onBack={() => setSelectedProject(null)} />;
     }
-
-    switch(activeNavItem) {
-      case 'Projects':
-        return <ProjectsPage projects={projects} onSelectProject={setViewingProject} />;
-      case 'Templates':
-        return <TemplatesPage templates={templates} onUseTemplate={handleStartPayment} />;
-      case 'Profile':
-        return user ? <ProfilePage user={user} setUser={setUser} /> : null;
+    switch (currentPage) {
       case 'Dashboard':
+        return <DashboardPage stats={mockStats} />;
+      case 'Projects':
+        return <ProjectsPage projects={projects} onSelectProject={setSelectedProject} />;
+      case 'Templates':
+        return <TemplatesPage templates={mockTemplates} onUseTemplate={setTemplateToBuy} />;
+      case 'Profile':
+        return <ProfilePage user={user!} setUser={setUser} />;
       default:
-        return <DashboardPage stats={stats} />;
+        return <DashboardPage stats={mockStats} />;
     }
   };
-  
-  if (!isAuthenticated) {
-      return (
-          <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-              <div className={authViewAnimation}>
-                {currentView === 'login' && <LoginPage onLoginSuccess={handleLoginSuccess} onSwitchToSignup={() => switchAuthView('signup')} />}
-                {currentView === 'signup' && <SignupPage onSignupSuccess={handleSignupSuccess} onSwitchToLogin={() => switchAuthView('login')} setUser={setUser} />}
-              </div>
-          </div>
-      )
+
+  if (!user) {
+    return (
+       <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
+            {authPage === 'login' && <LoginPage onLoginSuccess={handleLoginSuccess} onSwitchToSignup={() => setAuthPage('signup')} />}
+            {authPage === 'signup' && <SignupPage onSignupSuccess={handleSignupSuccess} onSwitchToLogin={() => setAuthPage('login')} setUser={setUser} />}
+       </div>
+    );
   }
 
   return (
-    <div className="min-h-screen flex bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 animate-fade-in">
+    <div className="flex h-screen bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200">
       <Sidebar 
-        navItems={navItems}
-        activeItem={activeNavItem}
-        setActiveItem={(item) => {
-            setViewingProject(null);
-            setActiveNavItem(item);
+        activeItem={currentPage} 
+        onNavigate={(page) => {
+            setCurrentPage(page);
+            setSelectedProject(null);
+            setSidebarOpen(false);
         }}
-        isDarkMode={isDarkMode}
-        toggleDarkMode={toggleDarkMode}
         onLogout={handleLogout}
+        isSidebarOpen={isSidebarOpen}
       />
-      <div className="flex-1 flex flex-col ml-64 overflow-y-auto">
-        <main className="flex-grow p-4 sm:p-6 lg:p-8">
-          {renderDashboardContent()}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <Header 
+            user={user}
+            pageTitle={selectedProject ? selectedProject.name : currentPage}
+            onToggleSidebar={() => setSidebarOpen(!isSidebarOpen)}
+            isSidebarOpen={isSidebarOpen}
+        />
+        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 dark:bg-gray-900 p-6">
+          {renderPage()}
         </main>
       </div>
-      {showPaymentModal && selectedTemplate && (
+      {templateToBuy && (
         <PaymentModal 
-            template={selectedTemplate}
-            onClose={() => setShowPaymentModal(false)}
+            template={templateToBuy}
+            onClose={() => setTemplateToBuy(null)}
             onPaymentSuccess={handlePaymentSuccess}
         />
       )}
     </div>
   );
-};
+}
 
 export default App;

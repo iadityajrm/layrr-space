@@ -1,150 +1,90 @@
-import React, { useState, useRef } from 'react';
-import type { Project } from '../types';
-import { CameraIcon } from '../components/Icons';
+
+import React from 'react';
+import type { Project, User } from '../types';
+import { ArrowLeftIcon, UploadIcon } from '../components/Icons';
 
 interface ProjectDetailPageProps {
   project: Project;
-  onUpdateProject: (project: Project) => void;
+  user: User;
   onBack: () => void;
 }
 
-export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ project, onUpdateProject, onBack }) => {
-  const [formData, setFormData] = useState({
-    brandName: project.brandName,
-    slug: project.slug,
-  });
-  const [proofImage, setProofImage] = useState<string | null>(project.proofImageUrl);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+const statusStyles = {
+  Active: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
+  'Pending Verification': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
+  Completed: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
+  Archived: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300',
+};
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ project, user, onBack }) => {
+
+  const handleUploadProof = () => {
+    // This would trigger a file input dialog
+    alert('Upload functionality not implemented in this demo.');
   };
-
-  const handleSave = (e: React.FormEvent) => {
-    e.preventDefault();
-    onUpdateProject({ ...project, ...formData });
-    alert('Project updated!');
-  };
-
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        setProofImage(event.target?.result as string);
-      };
-      reader.readAsDataURL(e.target.files[0]);
-    }
-  };
-
-  const handleSubmitForVerification = () => {
-    if (!proofImage) {
-        alert('Please upload a proof of sale photo.');
-        return;
-    }
-    onUpdateProject({ ...project, ...formData, proofImageUrl: proofImage, status: 'Pending Verification' });
-    alert('Project submitted for verification!');
-  };
-
-  const livePageUrl = `https://reviews.layrr.space/${formData.slug}`;
-  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(livePageUrl)}`;
-
+  
   return (
-    <div className="max-w-4xl mx-auto space-y-8 animate-fade-in-up">
-       <div>
-        <button onClick={onBack} className="mb-4 text-sm font-medium text-primary-600 hover:text-primary-800 dark:text-primary-400 dark:hover:text-primary-200">
-            &larr; Back to Projects
-        </button>
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{project.name}</h1>
-        <p className="text-gray-500 dark:text-gray-400 mt-1">Manage project details and submit for verification.</p>
-      </div>
+    <div className="max-w-4xl mx-auto animate-fade-in-up">
+      <button onClick={onBack} className="mb-8 text-sm font-medium text-primary-600 hover:text-primary-800 dark:text-primary-400 dark:hover:text-primary-200 flex items-center gap-2">
+        <ArrowLeftIcon className="w-4 h-4" />
+        Back to Projects
+      </button>
 
-      {/* Project Details Form */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
-        <form onSubmit={handleSave}>
-          <div className="p-6 space-y-6">
-            <h3 className="text-lg font-medium leading-6 text-gray-900 dark:text-white">Project Customization</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              <div>
-                <label htmlFor="brandName" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Brand/Business Name</label>
-                <input type="text" name="brandName" id="brandName" value={formData.brandName} onChange={handleInputChange} className="mt-1 block w-full px-4 py-3 border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-0 focus:border-primary-500 bg-white dark:bg-gray-700"/>
-              </div>
-              <div>
-                <label htmlFor="slug" className="block text-sm font-medium text-gray-700 dark:text-gray-300">URL Slug</label>
-                <div className="mt-1 flex rounded-md shadow-sm">
-                    <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm dark:bg-gray-900 dark:border-gray-600 dark:text-gray-400">
-                        reviews.layrr.space/
-                    </span>
-                    <input type="text" name="slug" id="slug" value={formData.slug} onChange={handleInputChange} className="flex-1 block w-full min-w-0 px-4 py-3 rounded-none rounded-r-md border-gray-300 dark:border-gray-600 focus:ring-0 focus:border-primary-500 bg-white dark:bg-gray-700"/>
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden">
+        <div className="p-6 sm:p-8">
+            <div className="flex justify-between items-start gap-4">
+                <div>
+                    <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{project.name}</h1>
+                    <p className="text-md text-gray-500 dark:text-gray-400 mt-1">/{project.slug}</p>
                 </div>
-              </div>
+                <span className={`text-sm font-medium px-3 py-1 rounded-full whitespace-nowrap ${statusStyles[project.status]}`}>
+                    {project.status}
+                </span>
             </div>
-             <div className="mt-6">
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white">Live Page QR Code</h3>
-                <div className="mt-2 flex items-center gap-4">
-                    <img src={qrCodeUrl} alt="QR Code" className="w-32 h-32 rounded-lg bg-white p-1"/>
-                    <div>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">Scan this code to view the live page.</p>
-                        <a href={livePageUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-primary-600 hover:underline dark:text-primary-400">
-                            reviews.layrr.space/{formData.slug}
-                        </a>
+
+            <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-6 text-sm">
+                <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg">
+                    <p className="text-gray-500 dark:text-gray-400 font-medium">Brand Name</p>
+                    <p className="text-gray-900 dark:text-white mt-1">{project.brandName}</p>
+                </div>
+                <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg">
+                    <p className="text-gray-500 dark:text-gray-400 font-medium">Creation Date</p>
+                    <p className="text-gray-900 dark:text-white mt-1">{project.createdDate}</p>
+                </div>
+                 <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg">
+                    <p className="text-gray-500 dark:text-gray-400 font-medium">Template Type</p>
+                    <p className="text-gray-900 dark:text-white mt-1">{project.templateType}</p>
+                </div>
+                <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg">
+                    <p className="text-gray-500 dark:text-gray-400 font-medium">Price</p>
+                    <p className="text-gray-900 dark:text-white mt-1">₹{project.price.toFixed(2)}</p>
+                </div>
+                <div className="bg-green-50 dark:bg-green-900/50 p-4 rounded-lg sm:col-span-2">
+                    <p className="text-green-700 dark:text-green-300 font-medium">Commission Earned</p>
+                    <p className="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">₹{project.commission.toFixed(2)}</p>
+                </div>
+            </div>
+
+            <div className="mt-8 border-t border-gray-200 dark:border-gray-700 pt-6">
+                <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Proof of Sale</h3>
+                {project.proofImageUrl ? (
+                     <div className="mt-4">
+                        <img src={project.proofImageUrl} alt="Proof of sale" className="rounded-lg max-w-sm w-full shadow-md" />
+                     </div>
+                ) : (
+                    <div className="mt-4 p-6 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg text-center">
+                        <p className="text-gray-500 dark:text-gray-400 mb-4">No proof uploaded yet. Upload a photo of the vendor's storefront or business card to verify the sale.</p>
+                        <button
+                            onClick={handleUploadProof}
+                            className="inline-flex items-center gap-2 bg-primary-600 hover:bg-primary-700 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200"
+                        >
+                            <UploadIcon className="w-5 h-5" />
+                            Upload Proof
+                        </button>
                     </div>
-                </div>
+                )}
             </div>
-          </div>
-          <div className="px-6 py-4 bg-gray-50 dark:bg-gray-800/50 text-right rounded-b-lg">
-            <button type="submit" className="bg-primary-600 hover:bg-primary-700 text-white font-medium py-2 px-4 rounded-lg shadow-sm transition-colors duration-200">
-              Publish Changes
-            </button>
-          </div>
-        </form>
-      </div>
-
-      {/* Order Completion Section */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
-         <div className="p-6">
-            <h3 className="text-lg font-medium leading-6 text-gray-900 dark:text-white">Mark as Complete</h3>
-            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">To complete this order and receive your commission, please upload a photo of the template setup at the vendor's location.</p>
-            
-            <div className="mt-4">
-                <div className="w-full h-64 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg flex items-center justify-center">
-                    {proofImage ? (
-                        <img src={proofImage} alt="Proof of sale" className="max-w-full max-h-full object-contain rounded-lg" />
-                    ) : (
-                        <div className="text-center">
-                            <CameraIcon className="mx-auto h-12 w-12 text-gray-400" />
-                            <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">No photo uploaded</p>
-                        </div>
-                    )}
-                </div>
-            </div>
-            
-            <input 
-                type="file" 
-                accept="image/*" 
-                capture="environment" 
-                ref={fileInputRef} 
-                onChange={handleImageUpload}
-                className="hidden"
-            />
-
-            <div className="mt-5 flex gap-4">
-                <button 
-                  onClick={() => fileInputRef.current?.click()}
-                  className="bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-medium py-2 px-4 rounded-lg shadow-sm border border-gray-300 dark:border-gray-600 transition-colors duration-200"
-                >
-                  {proofImage ? 'Change Photo' : 'Upload Photo'}
-                </button>
-                <button 
-                  onClick={handleSubmitForVerification}
-                  disabled={!proofImage || project.status !== 'Active'}
-                  className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg shadow-sm transition-colors duration-200 disabled:bg-green-300 dark:disabled:bg-green-800 disabled:cursor-not-allowed"
-                >
-                  Submit for Verification
-                </button>
-            </div>
-             {project.status !== 'Active' && <p className="mt-2 text-xs text-yellow-600 dark:text-yellow-400">This project is currently '{project.status}' and cannot be submitted.</p>}
-         </div>
+        </div>
       </div>
     </div>
   );
