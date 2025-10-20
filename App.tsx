@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
@@ -10,47 +9,22 @@ import { ProjectDetailPage } from './pages/ProjectDetailPage';
 import { LoginPage } from './pages/LoginPage';
 import { SignupPage } from './pages/SignupPage';
 import { PaymentModal } from './components/PaymentModal';
+import { supabase } from './src/lib/supabaseClient';
+import type { Session } from '@supabase/supabase-js';
 
-import type { User, Project, Template, StatCardData } from './types';
+import type { Profile, Project, Template, StatCardData } from './types';
 import { DashboardIcon, FolderIcon, CheckSquareIcon } from './components/Icons';
 
-// Mock Data
-const mockUser: User = {
-    firstName: 'Alex',
-    lastName: 'Doe',
-    city: 'San Francisco',
-    email: 'alex.doe@layrr.space',
-    mobile: '555-123-4567',
-    upiId: 'alex.doe@bank',
-    totalEarnings: 249.75,
-};
-
-const mockProjects: Project[] = [
-    { id: 'proj1', name: 'Sanjay\'s Cafe Page', slug: 'sanjays-cafe', templateType: 'Cafe Landing Page', createdDate: '2023-10-26', status: 'Active', brandName: 'Sanjay\'s Cafe', proofImageUrl: 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80', price: 999, commission: 249.75 },
-    { id: 'proj2', name: 'Gupta\'s Electronics', slug: 'gupta-electronics', templateType: 'Retail Storefront', createdDate: '2023-10-22', status: 'Pending Verification', brandName: 'Gupta\'s Electronics', proofImageUrl: null, price: 1499, commission: 374.75 },
-    { id: 'proj3', name: 'The Yoga House', slug: 'the-yoga-house', templateType: 'Fitness Studio', createdDate: '2023-09-15', status: 'Completed', brandName: 'The Yoga House', proofImageUrl: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2120&q=80', price: 1999, commission: 499.75 },
-    { id: 'proj4', name: 'Archived Project', slug: 'archived-project', templateType: 'Generic Template', createdDate: '2023-01-01', status: 'Archived', brandName: 'Old Business', proofImageUrl: null, price: 500, commission: 125.00 },
-];
-
-const mockTemplates: Template[] = [
-    { id: 'temp1', name: 'Cafe Landing Page', category: 'Food & Beverage', description: 'A modern, single-page site for cafes and restaurants.', longDescription: 'Engage your customers with a beautiful, mobile-friendly landing page. Showcase your menu, photos, location, and contact information. Perfect for cafes, bakeries, and small restaurants looking for a strong online presence.', imageUrl: 'https://images.unsplash.com/photo-1511920183353-3c9c9b02ce7c?auto=format&fit=crop&w=800&q=60', integrations: ['Google Maps', 'Social Media'], price: 999 },
-    { id: 'temp2', name: 'Retail Storefront', category: 'E-commerce', description: 'A clean and simple storefront for local shops.', longDescription: 'Launch your online store quickly with this easy-to-use template. It includes a product gallery, item details, and a clear call-to-action. Ideal for boutiques, electronics shops, and local artisans.', imageUrl: 'https://images.unsplash.com/photo-1556740738-b6a63e27c4df?auto=format&fit=crop&w=800&q=60', integrations: ['UPI Payments', 'WhatsApp'], price: 1499 },
-    { id: 'temp3', name: 'Fitness Studio', category: 'Health & Wellness', description: 'Promote classes and schedules for gyms or studios.', longDescription: 'Attract new members with a dynamic website. This template features sections for class schedules, trainer profiles, testimonials, and membership pricing. Great for yoga studios, gyms, and personal trainers.', imageUrl: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?auto=format&fit=crop&w=800&q=60', integrations: ['Booking Calendar', 'Instagram Feed'], price: 1999 },
-    { id: 'temp4', name: 'Portfolio for Creatives', category: 'Services', description: 'A stylish portfolio for photographers and designers.', longDescription: 'Showcase your best work with this visually-focused portfolio template. It features a stunning gallery, an "about me" section, and a contact form to help you land your next client. Optimized for high-resolution images.', imageUrl: 'https://images.unsplash.com/photo-1522204523234-8729aa6e3d5f?auto=format&fit=crop&w=800&q=60', integrations: ['Contact Form', 'Social Media'], price: 1299 },
-];
-
-const mockStats: StatCardData[] = [
-    { title: 'Total Earnings', value: `₹${mockUser.totalEarnings.toFixed(2)}`, icon: <DashboardIcon className="h-6 w-6 text-primary-600 dark:text-primary-300" /> },
-    { title: 'Active Projects', value: mockProjects.filter(p => p.status === 'Active' || p.status === 'Pending Verification').length.toString(), icon: <FolderIcon className="h-6 w-6 text-primary-600 dark:text-primary-300" /> },
-    { title: 'Completed Sales', value: mockProjects.filter(p => p.status === 'Completed').length.toString(), icon: <CheckSquareIcon className="h-6 w-6 text-primary-600 dark:text-primary-300" /> },
-];
-
 function App() {
-  const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [templates, setTemplates] = useState<Template[]>([]);
+  const [loading, setLoading] = useState(true);
+  
   const [authPage, setAuthPage] = useState<'login' | 'signup'>('login');
   
   const [currentPage, setCurrentPage] = useState('Dashboard');
-  const [projects, setProjects] = useState<Project[]>(mockProjects);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [isSidebarOpen, setSidebarOpen] = useState(false);
 
@@ -58,19 +32,70 @@ function App() {
   const [theme, setTheme] = useState('light');
   const [searchQuery, setSearchQuery] = useState('');
 
+  useEffect(() => {
+    const getSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setSession(session);
+      setLoading(false);
+    };
+    getSession();
 
-  // Effect to initialize theme from localStorage or system preference
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (session?.user) {
+      fetchProfile();
+      fetchProjects();
+      fetchTemplates();
+    }
+  }, [session]);
+
+  const fetchProfile = async () => {
+    if (!session?.user) return;
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', session.user.id)
+      .single();
+    if (error) console.error('Error fetching profile:', error);
+    else setProfile(data);
+  };
+
+  const fetchProjects = async () => {
+    const { data, error } = await supabase
+      .from('projects')
+      .select(`
+        *,
+        templates (
+          template_name,
+          price,
+          commission_rate,
+          preview_image_url
+        )
+      `)
+      .order('created_at', { ascending: false });
+    if (error) console.error('Error fetching projects:', error);
+    else setProjects(data as Project[]);
+  };
+
+  const fetchTemplates = async () => {
+    const { data, error } = await supabase.from('templates').select('*');
+    if (error) console.error('Error fetching templates:', error);
+    else setTemplates(data);
+  };
+
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme');
     const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-    if (savedTheme) {
-      setTheme(savedTheme);
-    } else if (prefersDark) {
-      setTheme('dark');
-    }
+    if (savedTheme) setTheme(savedTheme);
+    else if (prefersDark) setTheme('dark');
   }, []);
 
-  // Effect to apply theme class and save to localStorage
   useEffect(() => {
     if (theme === 'dark') {
       document.documentElement.classList.add('dark');
@@ -85,69 +110,91 @@ function App() {
     setTheme(prev => (prev === 'light' ? 'dark' : 'light'));
   };
 
-  const handleLoginSuccess = (loggedInUser: User) => {
-    setUser(loggedInUser);
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setProfile(null);
+    setProjects([]);
+    setAuthPage('login');
   };
   
-  const handleSignupSuccess = () => {
-    // After onboarding is complete, switch to the main app (dashboard)
-    // The user state is already set in the SignupPage component
-    setCurrentPage('Dashboard');
-  };
-  
-  const handleLogout = () => {
-      setUser(null);
-      setAuthPage('login');
-  };
-  
-  const handlePaymentSuccess = () => {
-    if (!templateToBuy) return;
+  const handlePaymentSuccess = async () => {
+    if (!templateToBuy || !session?.user) return;
 
-    const newProject: Project = {
-      id: `proj${projects.length + 1}`,
-      name: `New ${templateToBuy.name} Project`,
-      slug: `new-${templateToBuy.name.toLowerCase().replace(/ /g, '-')}`,
-      templateType: templateToBuy.name,
-      createdDate: new Date().toISOString().split('T')[0],
+    const newProject = {
+      user_id: session.user.id,
+      template_id: templateToBuy.id,
+      project_name: `New ${templateToBuy.template_name} Project`,
+      slug: `new-${templateToBuy.slug}-${Date.now()}`,
       status: 'Pending Verification',
-      brandName: 'New Brand',
-      proofImageUrl: null,
-      price: templateToBuy.price,
-      commission: templateToBuy.price * 0.25,
     };
 
-    setProjects(prev => [newProject, ...prev]);
-    setTemplateToBuy(null);
-    setCurrentPage('Projects'); // Navigate to projects page
-    setSelectedProject(newProject); // Go directly to the new project detail
+    const { data, error } = await supabase
+      .from('projects')
+      .insert(newProject)
+      .select(`
+        *,
+        templates (
+          template_name,
+          price,
+          commission_rate,
+          preview_image_url
+        )
+      `)
+      .single();
+
+    if (error) {
+      console.error('Error creating project:', error);
+      alert('Failed to create project.');
+    } else {
+      setProjects(prev => [data as Project, ...prev]);
+      setTemplateToBuy(null);
+      setCurrentPage('Projects');
+      setSelectedProject(data as Project);
+    }
   };
 
+  const stats: StatCardData[] = [
+    { title: 'Total Earnings', value: `₹${profile?.total_earnings?.toFixed(2) ?? '0.00'}`, icon: <DashboardIcon className="h-6 w-6 text-primary-600 dark:text-primary-300" /> },
+    { title: 'Active Projects', value: projects.filter(p => p.status === 'active' || p.status === 'pending_verification').length.toString(), icon: <FolderIcon className="h-6 w-6 text-primary-600 dark:text-primary-300" /> },
+    { title: 'Completed Sales', value: projects.filter(p => p.status === 'completed').length.toString(), icon: <CheckSquareIcon className="h-6 w-6 text-primary-600 dark:text-primary-300" /> },
+  ];
 
   const renderPage = () => {
     if (selectedProject) {
-      return <ProjectDetailPage project={selectedProject} user={user!} onBack={() => setSelectedProject(null)} />;
+      return <ProjectDetailPage project={selectedProject} user={profile!} onBack={() => setSelectedProject(null)} onProjectUpdate={(updatedProject) => {
+        setProjects(projects.map(p => p.id === updatedProject.id ? updatedProject : p));
+        setSelectedProject(updatedProject);
+      }} />;
     }
     switch (currentPage) {
       case 'Dashboard':
-        return <DashboardPage stats={mockStats} />;
+        return <DashboardPage stats={stats} />;
       case 'Projects':
         return <ProjectsPage projects={projects} onSelectProject={setSelectedProject} />;
       case 'Templates':
-        return <TemplatesPage templates={mockTemplates} onUseTemplate={setTemplateToBuy} />;
+        return <TemplatesPage templates={templates} onUseTemplate={setTemplateToBuy} />;
       case 'Profile':
-        return <ProfilePage user={user!} setUser={setUser} />;
+        return <ProfilePage user={profile!} setUser={setProfile} />;
       default:
-        return <DashboardPage stats={mockStats} />;
+        return <DashboardPage stats={stats} />;
     }
   };
 
-  if (!user) {
+  if (loading) {
+    return <div className="flex items-center justify-center min-h-screen bg-slate-50 dark:bg-slate-900">Loading...</div>;
+  }
+
+  if (!session) {
     return (
        <div className="flex items-center justify-center min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors">
-            {authPage === 'login' && <LoginPage onLoginSuccess={handleLoginSuccess} onSwitchToSignup={() => setAuthPage('signup')} />}
-            {authPage === 'signup' && <SignupPage onSignupSuccess={handleSignupSuccess} onSwitchToLogin={() => setAuthPage('login')} setUser={setUser} />}
+            {authPage === 'login' && <LoginPage onSwitchToSignup={() => setAuthPage('signup')} />}
+            {authPage === 'signup' && <SignupPage onSwitchToLogin={() => setAuthPage('login')} />}
        </div>
     );
+  }
+
+  if (!profile) {
+     return <div className="flex items-center justify-center min-h-screen bg-slate-50 dark:bg-slate-900">Fetching profile...</div>;
   }
 
   return (
@@ -166,7 +213,7 @@ function App() {
       />
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header 
-            user={user}
+            user={profile}
             onToggleSidebar={() => setSidebarOpen(!isSidebarOpen)}
             isSidebarOpen={isSidebarOpen}
             searchQuery={searchQuery}

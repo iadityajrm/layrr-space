@@ -1,6 +1,6 @@
-
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import type { Template } from '../types';
+import { CloseIcon } from './Icons';
 
 interface PaymentModalProps {
   template: Template;
@@ -9,83 +9,46 @@ interface PaymentModalProps {
 }
 
 export const PaymentModal: React.FC<PaymentModalProps> = ({ template, onClose, onPaymentSuccess }) => {
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
-
-  const handlePay = () => {
-    setIsProcessing(true);
-    setTimeout(() => {
-      setIsProcessing(false);
-      setIsSuccess(true);
-    }, 2000); // Simulate network delay
-  };
-
-  useEffect(() => {
-    if (isSuccess) {
-      const timer = setTimeout(() => {
-        onPaymentSuccess();
-      }, 1500);
-      return () => clearTimeout(timer);
-    }
-  }, [isSuccess, onPaymentSuccess]);
-  
-  const commission = (template.price * 0.25).toFixed(2);
-
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 transition-opacity duration-300">
-      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl p-6 sm:p-8 w-full max-w-md m-4 transform transition-all duration-300 scale-100">
-        {!isSuccess ? (
-          <>
-            <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Confirm Purchase</h2>
-            <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">You are about to purchase a license for the "{template.name}" template.</p>
-            
-            <div className="mt-6 p-4 bg-slate-50 dark:bg-slate-700/50 rounded-xl space-y-2">
-              <div className="flex justify-between items-center text-slate-800 dark:text-slate-200">
-                <span>Template Price:</span>
-                <span className="font-medium">₹{template.price.toFixed(2)}</span>
-              </div>
-               <div className="flex justify-between items-center text-sm text-green-600 dark:text-green-400">
-                <span>Your Commission (25%):</span>
-                <span className="font-medium">+ ₹{commission}</span>
-              </div>
+    <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full max-w-md transform transition-all animate-fade-in-up">
+        <div className="p-6 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
+          <h2 className="text-xl font-bold text-slate-900 dark:text-white">Purchase Template</h2>
+          <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700">
+            <CloseIcon className="h-5 w-5 text-slate-500 dark:text-slate-400" />
+          </button>
+        </div>
+        <div className="p-6">
+          <div className="flex items-center space-x-4 mb-6">
+            <img src={template.preview_image_url} alt={template.template_name} className="w-20 h-20 rounded-lg object-cover" />
+            <div>
+              <h3 className="font-semibold text-slate-800 dark:text-slate-200">{template.template_name}</h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400">{template.category}</p>
             </div>
-
-            <div className="mt-8 flex justify-end gap-3">
-              <button
-                onClick={onClose}
-                disabled={isProcessing}
-                className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-600 disabled:opacity-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handlePay}
-                disabled={isProcessing}
-                className="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 disabled:bg-primary-400 flex items-center"
-              >
-                {isProcessing ? (
-                  <>
-                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Processing...
-                  </>
-                ) : 'Pay Now'}
-              </button>
-            </div>
-          </>
-        ) : (
-          <div className="text-center py-8">
-             <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 dark:bg-green-900">
-                 <svg className="h-6 w-6 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                </svg>
-             </div>
-             <h3 className="mt-4 text-lg font-medium text-slate-900 dark:text-white">Payment Successful!</h3>
-             <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Your new project is being created...</p>
           </div>
-        )}
+          <div className="space-y-3 text-sm">
+            <div className="flex justify-between">
+              <span className="text-slate-600 dark:text-slate-400">Price</span>
+              <span className="font-medium text-slate-800 dark:text-slate-200">₹{template.price.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-600 dark:text-slate-400">Commission ({template.commission_rate * 100}%)</span>
+              <span className="font-medium text-slate-800 dark:text-slate-200">₹{(template.price * template.commission_rate).toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between font-bold text-base pt-2 border-t border-slate-200 dark:border-slate-700 mt-2">
+              <span className="text-slate-900 dark:text-white">You Earn</span>
+              <span className="text-primary-600 dark:text-primary-400">₹{(template.price * (1 - template.commission_rate)).toFixed(2)}</span>
+            </div>
+          </div>
+        </div>
+        <div className="p-6 bg-slate-50 dark:bg-slate-900/50 rounded-b-2xl">
+          <button 
+            onClick={onPaymentSuccess}
+            className="w-full py-3 px-4 bg-primary-600 text-white font-semibold rounded-lg shadow-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 focus:ring-offset-white dark:focus:ring-offset-slate-800 transition-colors"
+          >
+            Simulate Payment & Create Project
+          </button>
+        </div>
       </div>
     </div>
   );

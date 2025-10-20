@@ -1,89 +1,120 @@
-
-import React from 'react';
-import type { Project, User } from '../types';
-import { ArrowLeftIcon, UploadIcon } from '../components/Icons';
+import React, { useState } from 'react';
+import type { Project, Profile } from '../types';
+import { supabase } from '../src/lib/supabaseClient';
+import { ArrowLeftIcon, UploadCloudIcon } from '../components/Icons';
 
 interface ProjectDetailPageProps {
   project: Project;
-  user: User;
+  user: Profile;
   onBack: () => void;
+  onProjectUpdate: (project: Project) => void;
 }
 
-const statusStyles = {
-  Active: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
-  'Pending Verification': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
-  Completed: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
-  Archived: 'bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-300',
-};
+export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ project, user, onBack, onProjectUpdate }) => {
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
-export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ project, user, onBack }) => {
+  const handleProofUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    try {
+      setUploading(true);
+      setUploadError(null);
+      if (!event.target.files || event.target.files.length === 0) {
+        throw new Error('You must select an image to upload.');
+      }
 
-  const handleUploadProof = () => {
-    // This would trigger a file input dialog
-    alert('Upload functionality not implemented in this demo.');
+      const file = event.target.files[0];
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}-${project.id}-${Date.now()}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('proof_uploads')
+        .upload(filePath, file);
+
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('proof_uploads')
+        .getPublicUrl(filePath);
+
+      const { data: updatedProject, error: updateError } = await supabase
+        .from('projects')
+        .update({ proof_photo_url: publicUrl, status: 'Active' })
+        .eq('id', project.id)
+        .select(`
+          *,
+          templates (
+            template_name,
+            price,
+            commission_rate,
+            preview_image_url
+          )
+        `)
+        .single();
+
+      if (updateError) {
+        throw updateError;
+      }
+      
+      onProjectUpdate(updatedProject as Project);
+      alert('Proof uploaded and project activated!');
+
+    } catch (error: any) {
+      setUploadError(error.message);
+      alert('Error: ' + error.message);
+    } finally {
+      setUploading(false);
+    }
   };
-  
+
   return (
     <div className="max-w-4xl mx-auto animate-fade-in-up">
-      <button onClick={onBack} className="mb-8 text-sm font-medium text-primary-600 hover:text-primary-800 dark:text-primary-400 dark:hover:text-primary-200 flex items-center gap-2">
-        <ArrowLeftIcon className="w-4 h-4" />
-        Back to Projects
+      <button onClick={onBack} className="flex items-center space-x-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white mb-6">
+        <ArrowLeftIcon className="h-4 w-4" />
+        <span>Back to Projects</span>
       </button>
 
-      <div className="bg-white dark:bg-slate-800/50 rounded-2xl shadow-lg overflow-hidden border border-slate-200 dark:border-slate-800">
-        <div className="p-6 sm:p-8">
-            <div className="flex justify-between items-start gap-4">
-                <div>
-                    <h1 className="text-3xl font-bold text-slate-900 dark:text-white">{project.name}</h1>
-                    <p className="text-md text-slate-500 dark:text-slate-400 mt-1">/{project.slug}</p>
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800">
+        <div className="p-6 border-b border-slate-200 dark:border-slate-800">
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{project.project_name}</h1>
+          <p className="text-slate-500 dark:text-slate-400">Template: {project.templates?.template_name}</p>
+        </div>
+        <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <h3 className="font-semibold text-slate-800 dark:text-slate-200 mb-4">Project Details</h3>
+            <dl className="text-sm space-y-3">
+              <div className="flex justify-between"><dt className="text-slate-500 dark:text-slate-400">Status</dt><dd className="font-medium text-slate-700 dark:text-slate-300">{project.status}</dd></div>
+              <div className="flex justify-between"><dt className="text-slate-500 dark:text-slate-400">Slug</dt><dd className="font-medium text-slate-700 dark:text-slate-300">{project.slug}</dd></div>
+              <div className="flex justify-between"><dt className="text-slate-500 dark:text-slate-400">Created</dt><dd className="font-medium text-slate-700 dark:text-slate-300">{new Date(project.created_at).toLocaleString()}</dd></div>
+            </dl>
+          </div>
+          <div>
+            <h3 className="font-semibold text-slate-800 dark:text-slate-200 mb-4">Proof of Sale</h3>
+            {project.proof_photo_url ? (
+              <div>
+                <img src={project.proof_photo_url} alt="Proof of sale" className="rounded-lg w-full h-auto object-cover mb-4" />
+                <p className="text-sm text-green-600 dark:text-green-400">Proof has been uploaded.</p>
+              </div>
+            ) : (
+              <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-slate-300 dark:border-slate-700 border-dashed rounded-md">
+                <div className="space-y-1 text-center">
+                  <UploadCloudIcon className="mx-auto h-12 w-12 text-slate-400" />
+                  <div className="flex text-sm text-slate-600 dark:text-slate-400">
+                    <label htmlFor="file-upload" className="relative cursor-pointer bg-white dark:bg-slate-900 rounded-md font-medium text-primary-600 hover:text-primary-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-primary-500">
+                      <span>Upload a file</span>
+                      <input id="file-upload" name="file-upload" type="file" className="sr-only" onChange={handleProofUpload} disabled={uploading} accept="image/*" />
+                    </label>
+                    <p className="pl-1">or drag and drop</p>
+                  </div>
+                  <p className="text-xs text-slate-500 dark:text-slate-500">PNG, JPG, GIF up to 10MB</p>
                 </div>
-                <span className={`text-sm font-medium px-3 py-1 rounded-full whitespace-nowrap ${statusStyles[project.status]}`}>
-                    {project.status}
-                </span>
-            </div>
-
-            <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-6 text-sm">
-                <div className="bg-slate-50 dark:bg-slate-700/50 p-4 rounded-xl">
-                    <p className="text-slate-500 dark:text-slate-400 font-medium">Brand Name</p>
-                    <p className="text-slate-900 dark:text-white mt-1">{project.brandName}</p>
-                </div>
-                <div className="bg-slate-50 dark:bg-slate-700/50 p-4 rounded-xl">
-                    <p className="text-slate-500 dark:text-slate-400 font-medium">Creation Date</p>
-                    <p className="text-slate-900 dark:text-white mt-1">{project.createdDate}</p>
-                </div>
-                 <div className="bg-slate-50 dark:bg-slate-700/50 p-4 rounded-xl">
-                    <p className="text-slate-500 dark:text-slate-400 font-medium">Template Type</p>
-                    <p className="text-slate-900 dark:text-white mt-1">{project.templateType}</p>
-                </div>
-                <div className="bg-slate-50 dark:bg-slate-700/50 p-4 rounded-xl">
-                    <p className="text-slate-500 dark:text-slate-400 font-medium">Price</p>
-                    <p className="text-slate-900 dark:text-white mt-1">₹{project.price.toFixed(2)}</p>
-                </div>
-                <div className="bg-green-50 dark:bg-green-900/50 p-4 rounded-xl sm:col-span-2">
-                    <p className="text-green-700 dark:text-green-300 font-medium">Commission Earned</p>
-                    <p className="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">₹{project.commission.toFixed(2)}</p>
-                </div>
-            </div>
-
-            <div className="mt-8 border-t border-slate-200 dark:border-slate-700 pt-6">
-                <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">Proof of Sale</h3>
-                {project.proofImageUrl ? (
-                     <div className="mt-4">
-                        <img src={project.proofImageUrl} alt="Proof of sale" className="rounded-xl max-w-sm w-full shadow-md" />
-                     </div>
-                ) : (
-                    <div className="mt-4 p-6 border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-xl text-center">
-                        <p className="text-slate-500 dark:text-slate-400 mb-4">No proof uploaded yet. Upload a photo of the vendor's storefront or business card to verify the sale.</p>
-                        <button
-                            onClick={handleUploadProof}
-                            className="inline-flex items-center gap-2 bg-primary-600 hover:bg-primary-700 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200"
-                        >
-                            <UploadIcon className="w-5 h-5" />
-                            Upload Proof
-                        </button>
-                    </div>
-                )}
-            </div>
+              </div>
+            )}
+            {uploading && <p className="text-sm text-slate-500 mt-2">Uploading...</p>}
+            {uploadError && <p className="text-sm text-red-500 mt-2">{uploadError}</p>}
+          </div>
         </div>
       </div>
     </div>
