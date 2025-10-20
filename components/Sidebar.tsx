@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import type { NavItem } from '../types';
 import { DashboardIcon, FolderIcon, TemplateIcon, UserIcon, LogoutIcon, SunIcon, MoonIcon } from './Icons';
 
@@ -27,11 +27,71 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeItem, onNavigate, onLogo
   return (
     <aside className={`fixed inset-y-0 left-0 bg-slate-50 dark:bg-slate-900 w-64 space-y-6 py-7 px-2 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:relative md:translate-x-0 transition-transform duration-300 ease-in-out z-30 flex flex-col border-r border-slate-200 dark:border-slate-800`}>
       <div className="px-4">
-        {theme === 'dark' ? (
-          <img src="/logo-light.svg" alt="Layrr Logo" className="h-8 object-contain" />
-        ) : (
-          <img src="/logo-dark.svg" alt="Layrr Logo" className="h-8 object-contain" />
-        )}
+        {/* Render both images and let Tailwind's dark: utilities handle visibility. */}
+        {/* Track failures so we can show a clear inline SVG fallback if the PNGs are corrupted. */}
+        {/* Using local state avoids flashing and keeps behavior predictable. */}
+        {
+          (() => {
+            const [blackError, setBlackError] = useState(false);
+            const [whiteError, setWhiteError] = useState(false);
+
+            const blackImg = (
+              <img
+                src="/logo-black.svg"
+                alt="Layrr Logo - black"
+                className="h-8 object-contain block dark:hidden"
+                style={{ display: blackError ? 'none' : undefined }}
+                onError={(e) => {
+                  console.warn('Failed to load logo-black.svg, falling back to PNG:', e.currentTarget.src);
+                  // try png fallback
+                  (e.currentTarget as HTMLImageElement).src = '/logo-black.png';
+                }}
+              />
+            );
+
+            const whiteImg = (
+              <img
+                src="/logo-white.svg"
+                alt="Layrr Logo - white"
+                className="h-8 object-contain hidden dark:block"
+                style={{ display: whiteError ? 'none' : undefined }}
+                onError={(e) => {
+                  console.warn('Failed to load logo-white.svg, falling back to PNG:', e.currentTarget.src);
+                  (e.currentTarget as HTMLImageElement).src = '/logo-white.png';
+                }}
+              />
+            );
+
+            const fallbackLogo = (
+              <div className="h-8 flex items-center text-lg font-bold text-slate-800 dark:text-white">
+                {/* Simple inline SVG/text fallback so the sidebar always has a visible brand */}
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="mr-2">
+                  <rect width="24" height="24" rx="4" fill="#3b82f6" />
+                  <text x="12" y="16" textAnchor="middle" fontSize="12" fontFamily="Arial" fill="white">L</text>
+                </svg>
+                <span className="hidden sm:inline">Layrr</span>
+              </div>
+            );
+
+            // If theme is dark but white image failed -> show fallback
+            if (theme === 'dark') {
+              return whiteError ? fallbackLogo : (
+                <>
+                  {whiteImg}
+                  {blackImg}
+                </>
+              );
+            }
+
+            // light theme
+            return blackError ? fallbackLogo : (
+              <>
+                {blackImg}
+                {whiteImg}
+              </>
+            );
+          })()
+        }
       </div>
 
       <nav className="flex-grow">

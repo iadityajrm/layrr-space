@@ -43,12 +43,12 @@ export const SignupPage: React.FC<SignupPageProps> = ({ onSignupSuccess, onSwitc
                  <div className={formAnimation}>
                     <div className="text-center">
                          <img 
-                          src="/logo-dark.svg" 
+                                                    src="/logo-black.svg" 
                           alt="Layrr Logo" 
                           className="h-10 mx-auto object-contain dark:hidden"
                         />
                          <img 
-                          src="/logo-light.svg" 
+                                                    src="/logo-white.svg" 
                           alt="Layrr Logo White" 
                           className="h-10 mx-auto object-contain hidden dark:block"
                         />

@@ -32,16 +32,16 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onSwitchTo
     return (
         <div className="w-full max-w-md p-8 space-y-8 bg-white dark:bg-slate-800 rounded-2xl shadow-lg">
             <div className="text-center">
-                 <img 
-                  src="/logo-dark.svg" 
-                  alt="Layrr Logo" 
-                  className="h-10 mx-auto object-contain dark:hidden"
-                />
-                 <img 
-                  src="/logo-light.svg"
-                  alt="Layrr Logo White" 
-                  className="h-10 mx-auto object-contain hidden dark:block"
-                />
+                                 <img 
+                                    src="/logo-black.svg" 
+                                    alt="Layrr Logo" 
+                                    className="h-10 mx-auto object-contain dark:hidden"
+                                />
+                                 <img 
+                                    src="/logo-white.svg"
+                                    alt="Layrr Logo White" 
+                                    className="h-10 mx-auto object-contain hidden dark:block"
+                                />
                 <h1 className="mt-6 text-2xl font-bold text-center text-slate-900 dark:text-white">Welcome back</h1>
                 <p className="mt-2 text-sm text-center text-slate-600 dark:text-slate-400">Sign in to continue to Layrr</p>
             </div>
