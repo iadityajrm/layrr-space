@@ -13,7 +13,12 @@ import {
     Bell,
     ChevronDown,
     UploadCloud,
-    ArrowLeft
+    ArrowLeft,
+    ExternalLink,
+    ShoppingCart,
+    Info,
+    CheckCircle,
+    Lightbulb
 } from 'lucide-react';
 
 export const DashboardIcon = LayoutDashboard;
@@ -31,3 +36,8 @@ export const BellIcon = Bell;
 export const ChevronDownIcon = ChevronDown;
 export const UploadCloudIcon = UploadCloud;
 export const ArrowLeftIcon = ArrowLeft;
+export const ExternalLinkIcon = ExternalLink;
+export const ShoppingCartIcon = ShoppingCart;
+export const InfoIcon = Info;
+export const CheckCircleIcon = CheckCircle;
+export const LightBulbIcon = Lightbulb;

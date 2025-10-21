@@ -11,7 +11,7 @@ export const SignupPage: React.FC<SignupPageProps> = ({ onSwitchToLogin }) => {
     const [success, setSuccess] = useState(false);
     
     const [formData, setFormData] = useState({
-        full_name: '',
+        name: '',
         email: '',
         password: '',
         phone_number: '',
@@ -34,7 +34,7 @@ export const SignupPage: React.FC<SignupPageProps> = ({ onSwitchToLogin }) => {
             password: formData.password,
             options: {
                 data: {
-                    full_name: formData.full_name,
+                    name: formData.name,
                     phone_number: formData.phone_number,
                     upi_id: formData.upi_id,
                 }
@@ -82,7 +82,7 @@ export const SignupPage: React.FC<SignupPageProps> = ({ onSwitchToLogin }) => {
             {error && <p className="text-center text-sm text-red-500">{error}</p>}
             <form className="mt-8" onSubmit={handleSignup}>
                 <div className="space-y-4">
-                   <input type="text" name="full_name" placeholder="Full Name" required value={formData.full_name} onChange={handleInputChange} className="w-full px-4 py-3 border-slate-300 dark:border-slate-600 rounded-lg shadow-sm focus:ring-0 focus:border-primary-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-white placeholder-slate-500 dark:placeholder-slate-400"/>
+                   <input type="text" name="name" placeholder="Full Name" required value={formData.name} onChange={handleInputChange} className="w-full px-4 py-3 border-slate-300 dark:border-slate-600 rounded-lg shadow-sm focus:ring-0 focus:border-primary-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-white placeholder-slate-500 dark:placeholder-slate-400"/>
                     <input type="email" name="email" placeholder="Email Address" required value={formData.email} onChange={handleInputChange} className="w-full px-4 py-3 border-slate-300 dark:border-slate-600 rounded-lg shadow-sm focus:ring-0 focus:border-primary-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-white placeholder-slate-500 dark:placeholder-slate-400"/>
                      <input type="password" name="password" placeholder="Password" required value={formData.password} onChange={handleInputChange} className="w-full px-4 py-3 border-slate-300 dark:border-slate-600 rounded-lg shadow-sm focus:ring-0 focus:border-primary-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-white placeholder-slate-500 dark:placeholder-slate-400"/>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

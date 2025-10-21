@@ -1,71 +1,115 @@
-import React, { useState } from 'react';
-import type { Project, Profile } from '../types';
+import React, { useState, useEffect } from 'react';
+import type { Assignment, Profile, ReviewSettings } from '../types';
 import { supabase } from '../src/lib/supabaseClient';
-import { ArrowLeftIcon, UploadCloudIcon } from '../components/Icons';
+import { ArrowLeftIcon } from '../components/Icons';
 
 interface ProjectDetailPageProps {
-  project: Project;
+  project: Assignment;
   user: Profile;
   onBack: () => void;
-  onProjectUpdate: (project: Project) => void;
+  onProjectUpdate: (project: Assignment) => void;
 }
 
 export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ project, user, onBack, onProjectUpdate }) => {
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [settings, setSettings] = useState<Partial<ReviewSettings>>({});
+  const [slugInput, setSlugInput] = useState<string>(project.slug || '');
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(project.public_url || null);
+  const [saving, setSaving] = useState(false);
 
-  const handleProofUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    try {
-      setUploading(true);
-      setUploadError(null);
-      if (!event.target.files || event.target.files.length === 0) {
-        throw new Error('You must select an image to upload.');
+  useEffect(() => {
+    const fetchSettings = async () => {
+      const { data } = await supabase
+        .from('review_page_settings')
+        .select('*')
+        .eq('assignment_id', project.assignment_id || project.id)
+        .maybeSingle();
+
+      if (data) {
+        setSettings(data as any);
+        setSlugInput((data as any).slug || '');
+        setQrDataUrl((data as any).public_url || null);
       }
+    };
+    fetchSettings();
+  }, [project.assignment_id, project.id]);
 
-      const file = event.target.files[0];
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}-${project.id}-${Date.now()}.${fileExt}`;
-      const filePath = `${fileName}`;
+  const generateSlug = (base: string) => {
+    return base.trim().toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+  };
 
-      const { error: uploadError } = await supabase.storage
-        .from('proof_uploads')
-        .upload(filePath, file);
+  const generatePublicUrl = (slug: string) => {
+    const origin = window.location.origin;
+    return `${origin}/r/${slug}`;
+  };
 
-      if (uploadError) {
-        throw uploadError;
-      }
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('proof_uploads')
-        .getPublicUrl(filePath);
-
-      const { data: updatedProject, error: updateError } = await supabase
-        .from('projects')
-        .update({ proof_photo_url: publicUrl, status: 'Active' })
-        .eq('id', project.id)
-        .select(`
-          *,
-          templates (
-            template_name,
-            price,
-            commission_rate,
-            preview_image_url
-          )
-        `)
-        .single();
-
-      if (updateError) {
-        throw updateError;
-      }
-      
-      onProjectUpdate(updatedProject as Project);
-      alert('Proof uploaded and project activated!');
-
-    } catch (error: any) {
+  const handleLogoUpload = async (file: File) => {
+    const ext = file.name.split('.').pop();
+    const fileName = `${user.id}-${project.id}-logo-${Date.now()}.${ext}`;
+    setUploading(true);
+    setUploadError(null);
+    const { error } = await supabase.storage.from('review_logos').upload(fileName, file);
+    if (error) {
       setUploadError(error.message);
-      alert('Error: ' + error.message);
-    } finally {
       setUploading(false);
+      return null;
+    }
+    const { data } = supabase.storage.from('review_logos').getPublicUrl(fileName);
+    setUploading(false);
+    return data.publicUrl;
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const slug = slugInput ? generateSlug(slugInput) : generateSlug((project.title || project.assignment_id || project.id) as string);
+      const public_url = generatePublicUrl(slug);
+
+      const payload: any = {
+        assignment_id: project.assignment_id || project.id,
+        project_id: project.id,
+        slug,
+        public_url,
+        redirect_url_high_rating: settings.redirect_url_high_rating || null,
+        internal_feedback_config: settings.internal_feedback_config || null,
+        theme_color: settings.theme_color || null,
+        logo_url: settings.logo_url || null
+      };
+
+      const { data, error } = await supabase
+        .from('review_page_settings')
+        .upsert(payload, { onConflict: 'assignment_id' })
+        .select()
+        .maybeSingle();
+
+      if (error) throw error;
+
+      // update assignments row
+      const updatePayload: any = {
+        title: project.title || project.assignment_id,
+        slug,
+        public_url,
+        // keep a reference for debugging / policy checks
+        project_id: project.id
+      };
+
+      const upd = await supabase
+        .from('assignments')
+        .update(updatePayload)
+        .eq('id', project.id)
+        .maybeSingle();
+
+      if (upd.error) console.error('Error updating assignment row:', upd.error);
+
+      setSettings(data as any);
+      setQrDataUrl(public_url);
+      setSaving(false);
+      onProjectUpdate({ ...(project as any), slug, public_url, title: updatePayload.title } as any);
+    } catch (e: any) {
+      console.error(e);
+      alert('Save error: ' + (e?.message || String(e)));
+      setSaving(false);
     }
   };
 
@@ -78,45 +122,92 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ project, u
 
       <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800">
         <div className="p-6 border-b border-slate-200 dark:border-slate-800">
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{project.project_name}</h1>
-          <p className="text-slate-500 dark:text-slate-400">Template: {project.templates?.template_name}</p>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{project.title || project.assignment_id || project.id}</h1>
+          <p className="text-slate-500 dark:text-slate-400">Template: {Array.isArray(project.templates) ? project.templates[0]?.title : (project.templates as any)?.title || 'N/A'}</p>
         </div>
-        <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <h3 className="font-semibold text-slate-800 dark:text-slate-200 mb-4">Project Details</h3>
-            <dl className="text-sm space-y-3">
-              <div className="flex justify-between"><dt className="text-slate-500 dark:text-slate-400">Status</dt><dd className="font-medium text-slate-700 dark:text-slate-300">{project.status}</dd></div>
-              <div className="flex justify-between"><dt className="text-slate-500 dark:text-slate-400">Slug</dt><dd className="font-medium text-slate-700 dark:text-slate-300">{project.slug}</dd></div>
-              <div className="flex justify-between"><dt className="text-slate-500 dark:text-slate-400">Created</dt><dd className="font-medium text-slate-700 dark:text-slate-300">{new Date(project.created_at).toLocaleString()}</dd></div>
-            </dl>
+        <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="md:col-span-2">
+            <h3 className="font-semibold text-slate-800 dark:text-slate-200 mb-4">Customize Review Page</h3>
+            <div className="space-y-4">
+              <label className="block text-sm">
+                <div className="text-slate-600 mb-1">Business / Place Name</div>
+                <input value={project.title || ''} onChange={(e) => onProjectUpdate({ ...(project as any), title: e.target.value } as any)} className="w-full border rounded px-3 py-2" />
+              </label>
+
+              <label className="block text-sm">
+                <div className="text-slate-600 mb-1">Question Title</div>
+                <input value={(settings.internal_feedback_config && settings.internal_feedback_config.split('|')?.[0]) || ''} onChange={(e) => setSettings(s => ({ ...(s || {}), internal_feedback_config: `${e.target.value}|${settings.internal_feedback_config?.split('|')?.[1] || ''}` }))} className="w-full border rounded px-3 py-2" placeholder="How was Zoca Cafe?" />
+              </label>
+
+              <label className="block text-sm">
+                <div className="text-slate-600 mb-1">Redirect URL for 4–5 stars</div>
+                <input value={settings.redirect_url_high_rating || ''} onChange={(e) => setSettings(s => ({ ...(s || {}), redirect_url_high_rating: e.target.value }))} className="w-full border rounded px-3 py-2" placeholder="https://google.com/..." />
+              </label>
+
+              <label className="block text-sm">
+                <div className="text-slate-600 mb-1">Internal Feedback / Thank you (also endpoint)</div>
+                <textarea value={settings.internal_feedback_config || ''} onChange={(e) => setSettings(s => ({ ...(s || {}), internal_feedback_config: e.target.value }))} className="w-full border rounded px-3 py-2" placeholder="Thanks for your feedback... or POST endpoint URL" />
+              </label>
+
+              <label className="block text-sm">
+                <div className="text-slate-600 mb-1">Theme Color</div>
+                <input type="color" value={settings.theme_color || '#0ea5a4'} onChange={(e) => setSettings(s => ({ ...(s || {}), theme_color: e.target.value }))} />
+              </label>
+
+              <label className="block text-sm">
+                <div className="text-slate-600 mb-1">Logo Upload (optional)</div>
+                <input type="file" accept="image/*" onChange={async (e) => {
+                  if (!e.target.files || !e.target.files[0]) return;
+                  const publicUrl = await handleLogoUpload(e.target.files[0]);
+                  if (publicUrl) setSettings(s => ({ ...(s || {}), logo_url: publicUrl }));
+                }} />
+                {uploading && <div className="text-sm text-slate-500 mt-2">Uploading...</div>}
+                {uploadError && <div className="text-sm text-red-500 mt-2">{uploadError}</div>}
+              </label>
+
+              <label className="block text-sm">
+                <div className="text-slate-600 mb-1">Slug (public path)</div>
+                <input value={slugInput} onChange={(e) => setSlugInput(e.target.value)} className="w-full border rounded px-3 py-2" placeholder="zoca-cafe-review" />
+              </label>
+
+              <div className="flex items-center space-x-3">
+                <button onClick={handleSave} disabled={saving} className="px-4 py-2 bg-primary-600 text-white rounded">{saving ? 'Saving...' : 'Save & Publish'}</button>
+                <button onClick={() => { setSettings({}); setSlugInput(''); }} className="px-4 py-2 border rounded">Reset</button>
+              </div>
+            </div>
           </div>
           <div>
-            <h3 className="font-semibold text-slate-800 dark:text-slate-200 mb-4">Proof of Sale</h3>
-            {project.proof_photo_url ? (
-              <div>
-                <img src={project.proof_photo_url} alt="Proof of sale" className="rounded-lg w-full h-auto object-cover mb-4" />
-                <p className="text-sm text-green-600 dark:text-green-400">Proof has been uploaded.</p>
+            <h3 className="font-semibold text-slate-800 dark:text-slate-200 mb-4">Live Preview</h3>
+            <div className="border rounded p-4" style={{ borderColor: settings.theme_color || '#e5e7eb' }}>
+              <div className="text-lg font-bold mb-2">{project.title || 'Your Business'}</div>
+              <div className="mb-3">{(settings.internal_feedback_config && settings.internal_feedback_config.split('|')?.[0]) || 'How was your experience?'}</div>
+              <div className="flex items-center space-x-2 mb-3">
+                {[5,4,3,2,1].map(i => (
+                  <button key={i} className="px-2 py-1 bg-yellow-400 rounded" onClick={() => {
+                    const rating = i;
+                    if (rating >= 4) {
+                      window.open(settings.redirect_url_high_rating || settings.public_url || '#', '_blank');
+                    } else {
+                      alert(settings.internal_feedback_config || 'Show internal feedback form');
+                    }
+                  }}>{i}★</button>
+                ))}
               </div>
-            ) : (
-              <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-slate-300 dark:border-slate-700 border-dashed rounded-md">
-                <div className="space-y-1 text-center">
-                  <UploadCloudIcon className="mx-auto h-12 w-12 text-slate-400" />
-                  <div className="flex text-sm text-slate-600 dark:text-slate-400">
-                    <label htmlFor="file-upload" className="relative cursor-pointer bg-white dark:bg-slate-900 rounded-md font-medium text-primary-600 hover:text-primary-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-primary-500">
-                      <span>Upload a file</span>
-                      <input id="file-upload" name="file-upload" type="file" className="sr-only" onChange={handleProofUpload} disabled={uploading} accept="image/*" />
-                    </label>
-                    <p className="pl-1">or drag and drop</p>
-                  </div>
-                  <p className="text-xs text-slate-500 dark:text-slate-500">PNG, JPG, GIF up to 10MB</p>
-                </div>
+              <div className="text-sm text-slate-500">Public link: <a className="underline" href={qrDataUrl || '#'} target="_blank" rel="noreferrer">{qrDataUrl || '—'}</a></div>
+              <div className="mt-4">
+                <div className="text-xs text-slate-500 mb-1">QR (downloadable)</div>
+                {qrDataUrl ? (
+                  <a href={qrDataUrl} target="_blank" rel="noreferrer" className="inline-block border rounded p-2">Open Link</a>
+                ) : (
+                  <div className="text-sm text-slate-400">QR will be available after publish</div>
+                )}
               </div>
-            )}
-            {uploading && <p className="text-sm text-slate-500 mt-2">Uploading...</p>}
-            {uploadError && <p className="text-sm text-red-500 mt-2">{uploadError}</p>}
+            </div>
           </div>
         </div>
       </div>
     </div>
   );
 };
+
+export default ProjectDetailPage;

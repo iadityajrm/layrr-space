@@ -6,26 +6,28 @@ import { ProjectsPage } from './pages/ProjectsPage';
 import { TemplatesPage } from './pages/TemplatesPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { ProjectDetailPage } from './pages/ProjectDetailPage';
+import { TemplateDetailPage } from './pages/TemplateDetailPage';
 import { LoginPage } from './pages/LoginPage';
 import { SignupPage } from './pages/SignupPage';
 import { PaymentModal } from './components/PaymentModal';
 import { supabase } from './src/lib/supabaseClient';
 import type { Session } from '@supabase/supabase-js';
 
-import type { Profile, Project, Template, StatCardData } from './types';
+import type { Profile, Assignment, Template, StatCardData } from './types';
 import { DashboardIcon, FolderIcon, CheckSquareIcon } from './components/Icons';
 
 function App() {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [projects, setProjects] = useState<Project[]>([]);
+  const [projects, setProjects] = useState<Assignment[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [loading, setLoading] = useState(true);
   
   const [authPage, setAuthPage] = useState<'login' | 'signup'>('login');
   
   const [currentPage, setCurrentPage] = useState('Dashboard');
-  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [selectedProject, setSelectedProject] = useState<Assignment | null>(null);
+  const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
   const [isSidebarOpen, setSidebarOpen] = useState(false);
 
   const [templateToBuy, setTemplateToBuy] = useState<Template | null>(null);
@@ -50,37 +52,73 @@ function App() {
   useEffect(() => {
     if (session?.user) {
       fetchProfile();
-      fetchProjects();
+      fetchAssignments();
       fetchTemplates();
     }
   }, [session]);
 
   const fetchProfile = async () => {
     if (!session?.user) return;
-    const { data, error } = await supabase
+    // user table uses user_id to store auth uid
+    const uid = session.user.id;
+
+    // Try lookup by `user_id` first (your schema uses this column), then fall back to `id`.
+    let { data, error } = await supabase
       .from('users')
-      .select('*')
-      .eq('id', session.user.id)
-      .single();
-    if (error) console.error('Error fetching profile:', error);
-    else setProfile(data);
+      .select('id, user_id, name, email, role, created_at, last_login, phone_number, upi_id, total_earnings')
+      .eq('user_id', uid)
+      .maybeSingle();
+
+    if (error) {
+      console.error('Error fetching profile by user_id:', error);
+    }
+
+    if (!data) {
+      // Try the other column (some schemas store the auth uid in `id`)
+      const res = await supabase
+        .from('users')
+        .select('id, user_id, name, email, role, created_at, last_login, phone_number, upi_id, total_earnings')
+        .eq('id', uid)
+        .maybeSingle();
+
+      if (res.error) console.error('Error fetching profile by id:', res.error);
+      data = res.data;
+      error = res.error;
+    }
+
+    if (error) {
+      // Unexpected DB error
+      console.error('Error fetching profile:', error);
+      return;
+    }
+
+    if (!data) {
+      // No visible row returned. This can happen if the row exists but RLS/policies block access
+      console.info('No profile row visible for auth uid', uid, '- check RLS policies and whether auth uid is stored in `id` or `user_id`.');
+      setProfile(null);
+      return;
+    }
+
+    console.info('Fetched profile row:', data);
+    setProfile(data as any);
   };
 
-  const fetchProjects = async () => {
+  const fetchAssignments = async () => {
     const { data, error } = await supabase
-      .from('projects')
+      .from('assignments')
       .select(`
         *,
         templates (
-          template_name,
+          id,
+          category,
+          preview_url,
           price,
-          commission_rate,
-          preview_image_url
+          creator_id
         )
       `)
-      .order('created_at', { ascending: false });
-    if (error) console.error('Error fetching projects:', error);
-    else setProjects(data as Project[]);
+      .order('assigned_at', { ascending: false });
+    if (error) console.error('Error fetching assignments:', error);
+    else setProjects(data as any[]); // reuse projects state for assignments
   };
 
   const fetchTemplates = async () => {
@@ -120,43 +158,67 @@ function App() {
   const handlePaymentSuccess = async () => {
     if (!templateToBuy || !session?.user) return;
 
-    const newProject = {
+    const generateAssignmentId = () => {
+      if (typeof crypto !== 'undefined' && typeof (crypto as any).randomUUID === 'function') {
+        return (crypto as any).randomUUID();
+      }
+      // fallback
+      return `a_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+    };
+
+    const newAssignment = {
+      assignment_id: generateAssignmentId(),
       user_id: session.user.id,
       template_id: templateToBuy.id,
-      project_name: `New ${templateToBuy.template_name} Project`,
-      slug: `new-${templateToBuy.slug}-${Date.now()}`,
+      assigned_at: new Date().toISOString(),
       status: 'Pending Verification',
     };
 
     const { data, error } = await supabase
-      .from('projects')
-      .insert(newProject)
+      .from('assignments')
+      .insert(newAssignment)
       .select(`
         *,
         templates (
-          template_name,
-          price,
-          commission_rate,
-          preview_image_url
+          id,
+          category,
+          preview_url,
+          price
         )
       `)
-      .single();
+      .maybeSingle();
 
     if (error) {
-      console.error('Error creating project:', error);
-      alert('Failed to create project.');
-    } else {
-      setProjects(prev => [data as Project, ...prev]);
-      setTemplateToBuy(null);
-      setCurrentPage('Projects');
-      setSelectedProject(data as Project);
+      // Log full error object for diagnosis
+      try {
+        console.error('Error creating assignment (full):', JSON.stringify(error, null, 2));
+      } catch (e) {
+        console.error('Error creating assignment (object):', error);
+      }
+      console.error('Insert response data:', data);
+
+      // Give the user a more actionable alert
+      const details = error?.details || error?.message || 'Unknown error';
+      alert(`Failed to create assignment: ${details}. Check RLS/policies and that the 'assignments' table exists and allows INSERT for this user.`);
+      return;
     }
+
+    // Success
+    setProjects(prev => [data as any, ...prev]);
+    setTemplateToBuy(null);
+    setCurrentPage('Projects');
+    setSelectedProject(data as any);
   };
 
+  const normalizeStatus = (s?: string) => (s || '').toLowerCase();
+
   const stats: StatCardData[] = [
-    { title: 'Total Earnings', value: `₹${profile?.total_earnings?.toFixed(2) ?? '0.00'}`, icon: <DashboardIcon className="h-6 w-6 text-primary-600 dark:text-primary-300" /> },
-    { title: 'Active Projects', value: projects.filter(p => p.status === 'active' || p.status === 'pending_verification').length.toString(), icon: <FolderIcon className="h-6 w-6 text-primary-600 dark:text-primary-300" /> },
-    { title: 'Completed Sales', value: projects.filter(p => p.status === 'completed').length.toString(), icon: <CheckSquareIcon className="h-6 w-6 text-primary-600 dark:text-primary-300" /> },
+    { title: 'Total Earnings', value: `₹${(profile as any)?.total_earnings ? (profile as any).total_earnings.toFixed(2) : '0.00'}`, icon: <DashboardIcon className="h-6 w-6 text-primary-600 dark:text-primary-300" /> },
+    { title: 'Active Projects', value: projects.filter(p => {
+      const st = normalizeStatus(p.status);
+      return st === 'active' || st === 'pending verification' || st === 'pending_verification' || st === 'pending';
+    }).length.toString(), icon: <FolderIcon className="h-6 w-6 text-primary-600 dark:text-primary-300" /> },
+    { title: 'Completed Sales', value: projects.filter(p => normalizeStatus(p.status) === 'completed').length.toString(), icon: <CheckSquareIcon className="h-6 w-6 text-primary-600 dark:text-primary-300" /> },
   ];
 
   const renderPage = () => {
@@ -166,13 +228,20 @@ function App() {
         setSelectedProject(updatedProject);
       }} />;
     }
+    if (selectedTemplate) {
+      return <TemplateDetailPage 
+        template={selectedTemplate} 
+        onBack={() => setSelectedTemplate(null)}
+        onUseTemplate={setTemplateToBuy}
+      />;
+    }
     switch (currentPage) {
       case 'Dashboard':
         return <DashboardPage stats={stats} />;
       case 'Projects':
         return <ProjectsPage projects={projects} onSelectProject={setSelectedProject} />;
       case 'Templates':
-        return <TemplatesPage templates={templates} onUseTemplate={setTemplateToBuy} />;
+        return <TemplatesPage templates={templates} onSelectTemplate={setSelectedTemplate} />;
       case 'Profile':
         return <ProfilePage user={profile!} setUser={setProfile} />;
       default:
@@ -204,6 +273,7 @@ function App() {
         onNavigate={(page) => {
             setCurrentPage(page);
             setSelectedProject(null);
+            setSelectedTemplate(null);
             setSidebarOpen(false);
         }}
         onLogout={handleLogout}

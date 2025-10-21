@@ -20,24 +20,24 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ template, onClose, o
         </div>
         <div className="p-6">
           <div className="flex items-center space-x-4 mb-6">
-            <img src={template.preview_image_url} alt={template.template_name} className="w-20 h-20 rounded-lg object-cover" />
+            <img src={template.preview_url || ''} alt={template.title} className="w-20 h-20 rounded-lg object-cover" />
             <div>
-              <h3 className="font-semibold text-slate-800 dark:text-slate-200">{template.template_name}</h3>
+              <h3 className="font-semibold text-slate-800 dark:text-slate-200">{template.title}</h3>
               <p className="text-sm text-slate-500 dark:text-slate-400">{template.category}</p>
             </div>
           </div>
           <div className="space-y-3 text-sm">
             <div className="flex justify-between">
               <span className="text-slate-600 dark:text-slate-400">Price</span>
-              <span className="font-medium text-slate-800 dark:text-slate-200">₹{template.price.toFixed(2)}</span>
+              <span className="font-medium text-slate-800 dark:text-slate-200">₹{(template.price ?? 0).toFixed(2)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-600 dark:text-slate-400">Commission ({template.commission_rate * 100}%)</span>
-              <span className="font-medium text-slate-800 dark:text-slate-200">₹{(template.price * template.commission_rate).toFixed(2)}</span>
+              <span className="text-slate-600 dark:text-slate-400">Commission ({((template.commission_rate ?? 0.25) * 100).toFixed(0)}%)</span>
+              <span className="font-medium text-slate-800 dark:text-slate-200">₹{((template.price ?? 0) * (template.commission_rate ?? 0.25)).toFixed(2)}</span>
             </div>
             <div className="flex justify-between font-bold text-base pt-2 border-t border-slate-200 dark:border-slate-700 mt-2">
               <span className="text-slate-900 dark:text-white">You Earn</span>
-              <span className="text-primary-600 dark:text-primary-400">₹{(template.price * (1 - template.commission_rate)).toFixed(2)}</span>
+              <span className="text-primary-600 dark:text-primary-400">₹{((template.price ?? 0) * (template.commission_rate ?? 0.25)).toFixed(2)}</span>
             </div>
           </div>
         </div>

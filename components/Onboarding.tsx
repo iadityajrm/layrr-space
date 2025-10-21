@@ -1,5 +1,5 @@
 import React from 'react';
-import { TemplateIcon, BriefcaseIcon, CheckSquareIcon } from './Icons';
+import { TemplatesIcon, CheckSquareIcon } from './Icons';
 
 interface OnboardingProps {
     onComplete: () => void;
@@ -26,13 +26,13 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
             
             <div className="mt-8 space-y-6 text-left">
                 <OnboardingStep 
-                    icon={<TemplateIcon className="w-6 h-6 text-primary-600 dark:text-primary-300" />}
+                    icon={<TemplatesIcon className="w-6 h-6 text-primary-600 dark:text-primary-300" />}
                     title="1. Choose a Template"
                     description="Browse our library of professionally designed templates built for local businesses."
                     delay="100ms"
                 />
                  <OnboardingStep 
-                    icon={<BriefcaseIcon className="w-6 h-6 text-primary-600 dark:text-primary-300" />}
+                    icon={<CheckSquareIcon className="w-6 h-6 text-primary-600 dark:text-primary-300" />}
                     title="2. Sell to a Vendor"
                     description="Showcase and sell a template to a local business. Once they agree, you 'purchase' it here to create a project."
                     delay="200ms"
