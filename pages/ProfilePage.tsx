@@ -9,6 +9,8 @@ interface ProfilePageProps {
 
 export const ProfilePage: React.FC<ProfilePageProps> = ({ user, setUser }) => {
   const [loading, setLoading] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteConfirmationEmail, setDeleteConfirmationEmail] = useState('');
   const [formData, setFormData] = useState({
     name: '',
     phone_number: '',
@@ -81,6 +83,33 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ user, setUser }) => {
     }
   };
 
+  const handleDeleteProfile = async () => {
+    if (deleteConfirmationEmail !== user.email) {
+      alert('Email address does not match.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { error } = await supabase.rpc('delete_user');
+      if (error) {
+        console.error('Error deleting user:', error);
+        alert('Error deleting profile: ' + error.message);
+      } else {
+        alert('Profile deleted successfully.');
+        await supabase.auth.signOut();
+        // Redirect or update UI state
+        window.location.reload();
+      }
+    } catch (err: any) {
+      console.error('Unexpected error deleting profile:', err);
+      alert('Unexpected error: ' + err?.message || String(err));
+    } finally {
+      setLoading(false);
+      setShowDeleteModal(false);
+    }
+  };
+
   return (
     <div className="max-w-4xl mx-auto animate-fade-in-up">
       <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-6">My Profile</h1>
@@ -111,6 +140,52 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ user, setUser }) => {
           </div>
         </form>
       </div>
+
+      <div className="mt-6">
+        <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-4">Danger Zone</h2>
+        <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-red-500/50">
+          <div className="p-6 flex justify-between items-center">
+            <div>
+              <h3 className="text-lg font-medium text-slate-900 dark:text-white">Delete Your Account</h3>
+              <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">Once you delete your account, there is no going back. Please be certain.</p>
+            </div>
+            <button onClick={() => setShowDeleteModal(true)} className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+              Delete Account
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl p-6 w-full max-w-md">
+            <h2 className="text-xl font-bold text-slate-900 dark:text-white">Confirm Deletion</h2>
+            <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
+              To confirm, please type your email address (<span className="font-mono">{user.email}</span>) in the box below.
+            </p>
+            <div className="mt-4">
+              <input
+                type="email"
+                value={deleteConfirmationEmail}
+                onChange={(e) => setDeleteConfirmationEmail(e.target.value)}
+                className="mt-1 block w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+              />
+            </div>
+            <div className="mt-6 flex justify-end space-x-4">
+              <button onClick={() => setShowDeleteModal(false)} className="py-2 px-4 border border-slate-300 dark:border-slate-700 rounded-md text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800">
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteProfile}
+                disabled={deleteConfirmationEmail !== user.email}
+                className="py-2 px-4 border border-transparent rounded-md text-sm font-medium text-white bg-red-600 hover:bg-red-700 disabled:opacity-50"
+              >
+                Confirm Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

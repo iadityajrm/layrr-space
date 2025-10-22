@@ -11,9 +11,12 @@ interface HeaderProps {
   isSidebarOpen: boolean;
   searchQuery: string;
   onSearchChange: (query: string) => void;
+  searchResults: any[];
+  onSearchResultClick: (result: any) => void;
+  onToggleNotificationPanel: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ user, onToggleSidebar, isSidebarOpen, searchQuery, onSearchChange }) => {
+export const Header: React.FC<HeaderProps> = ({ user, onToggleSidebar, isSidebarOpen, searchQuery, onSearchChange, searchResults, onSearchResultClick, onToggleNotificationPanel }) => {
   return (
     <header className="flex-shrink-0 h-20 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-6">
       <div className="flex items-center">
@@ -29,10 +32,29 @@ export const Header: React.FC<HeaderProps> = ({ user, onToggleSidebar, isSidebar
             onChange={(e) => onSearchChange(e.target.value)}
             className="w-64 pl-10 pr-4 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 border border-transparent focus:bg-white dark:focus:bg-slate-900 focus:border-primary-500 focus:ring-primary-500 transition"
           />
+          {searchResults.length > 0 && (
+            <div className="absolute mt-2 w-64 rounded-md shadow-lg bg-white dark:bg-slate-800 ring-1 ring-black ring-opacity-5">
+              <div className="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
+                {searchResults.map((result, index) => (
+                  <a
+                    key={index}
+                    href="#"
+                    onClick={() => onSearchResultClick(result)}
+                    className="block px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700"
+                    role="menuitem"
+                  >
+                    {result.type === 'project' && `Project: ${result.data.title}`}
+                    {result.type === 'template' && `Template: ${result.data.title}`}
+                    {result.type === 'page' && `Go to: ${result.data.name}`}
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
       <div className="flex items-center space-x-4">
-        <button className="p-2 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-200">
+        <button onClick={onToggleNotificationPanel} className="p-2 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-200">
           <BellIcon className="h-6 w-6" />
         </button>
         <div className="flex items-center space-x-3">

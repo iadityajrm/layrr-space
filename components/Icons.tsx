@@ -18,9 +18,11 @@ import {
     ShoppingCart,
     Info,
     CheckCircle,
-    Lightbulb
+    Lightbulb,
+    MessageSquare
 } from 'lucide-react';
 
+export const ChatIcon = MessageSquare;
 export const DashboardIcon = LayoutDashboard;
 export const FolderIcon = Folder;
 export const CheckSquareIcon = CheckSquare;

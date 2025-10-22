@@ -1,5 +1,5 @@
 import React from 'react';
-import { DashboardIcon, FolderIcon, TemplatesIcon, ProfileIcon, LogoutIcon, SunIcon, MoonIcon } from './Icons';
+import { DashboardIcon, FolderIcon, TemplatesIcon, ProfileIcon, LogoutIcon, SunIcon, MoonIcon, ChatIcon } from './Icons';
 
 interface SidebarProps {
   activeItem: string;
@@ -15,6 +15,7 @@ const navItems = [
   { name: 'Projects', icon: <FolderIcon className="h-5 w-5" /> },
   { name: 'Templates', icon: <TemplatesIcon className="h-5 w-5" /> },
   { name: 'Profile', icon: <ProfileIcon className="h-5 w-5" /> },
+  { name: 'Feedback', icon: <ChatIcon className="h-5 w-5" /> },
 ];
 
 export const Sidebar: React.FC<SidebarProps> = ({ activeItem, onNavigate, onLogout, isSidebarOpen, theme, toggleTheme }) => {

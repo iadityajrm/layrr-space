@@ -130,32 +130,32 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ project, u
             <h3 className="font-semibold text-slate-800 dark:text-slate-200 mb-4">Customize Review Page</h3>
             <div className="space-y-4">
               <label className="block text-sm">
-                <div className="text-slate-600 mb-1">Business / Place Name</div>
-                <input value={project.title || ''} onChange={(e) => onProjectUpdate({ ...(project as any), title: e.target.value } as any)} className="w-full border rounded px-3 py-2" />
+                <div className="text-slate-600 dark:text-slate-300 mb-1">Business / Place Name</div>
+                <input value={project.title || ''} onChange={(e) => onProjectUpdate({ ...(project as any), title: e.target.value } as any)} className="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded px-3 py-2" />
               </label>
 
               <label className="block text-sm">
-                <div className="text-slate-600 mb-1">Question Title</div>
-                <input value={(settings.internal_feedback_config && settings.internal_feedback_config.split('|')?.[0]) || ''} onChange={(e) => setSettings(s => ({ ...(s || {}), internal_feedback_config: `${e.target.value}|${settings.internal_feedback_config?.split('|')?.[1] || ''}` }))} className="w-full border rounded px-3 py-2" placeholder="How was Zoca Cafe?" />
+                <div className="text-slate-600 dark:text-slate-300 mb-1">Question Title</div>
+                <input value={(settings.internal_feedback_config && settings.internal_feedback_config.split('|')?.[0]) || ''} onChange={(e) => setSettings(s => ({ ...(s || {}), internal_feedback_config: `${e.target.value}|${settings.internal_feedback_config?.split('|')?.[1] || ''}` }))} className="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded px-3 py-2" placeholder="How was Zoca Cafe?" />
               </label>
 
               <label className="block text-sm">
-                <div className="text-slate-600 mb-1">Redirect URL for 4–5 stars</div>
-                <input value={settings.redirect_url_high_rating || ''} onChange={(e) => setSettings(s => ({ ...(s || {}), redirect_url_high_rating: e.target.value }))} className="w-full border rounded px-3 py-2" placeholder="https://google.com/..." />
+                <div className="text-slate-600 dark:text-slate-300 mb-1">Redirect URL for 4–5 stars</div>
+                <input value={settings.redirect_url_high_rating || ''} onChange={(e) => setSettings(s => ({ ...(s || {}), redirect_url_high_rating: e.target.value }))} className="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded px-3 py-2" placeholder="https://google.com/..." />
               </label>
 
               <label className="block text-sm">
-                <div className="text-slate-600 mb-1">Internal Feedback / Thank you (also endpoint)</div>
-                <textarea value={settings.internal_feedback_config || ''} onChange={(e) => setSettings(s => ({ ...(s || {}), internal_feedback_config: e.target.value }))} className="w-full border rounded px-3 py-2" placeholder="Thanks for your feedback... or POST endpoint URL" />
+                <div className="text-slate-600 dark:text-slate-300 mb-1">Internal Feedback / Thank you (also endpoint)</div>
+                <textarea value={settings.internal_feedback_config || ''} onChange={(e) => setSettings(s => ({ ...(s || {}), internal_feedback_config: e.target.value }))} className="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded px-3 py-2" placeholder="Thanks for your feedback... or POST endpoint URL" />
               </label>
 
               <label className="block text-sm">
-                <div className="text-slate-600 mb-1">Theme Color</div>
+                <div className="text-slate-600 dark:text-slate-300 mb-1">Theme Color</div>
                 <input type="color" value={settings.theme_color || '#0ea5a4'} onChange={(e) => setSettings(s => ({ ...(s || {}), theme_color: e.target.value }))} />
               </label>
 
               <label className="block text-sm">
-                <div className="text-slate-600 mb-1">Logo Upload (optional)</div>
+                <div className="text-slate-600 dark:text-slate-300 mb-1">Logo Upload (optional)</div>
                 <input type="file" accept="image/*" onChange={async (e) => {
                   if (!e.target.files || !e.target.files[0]) return;
                   const publicUrl = await handleLogoUpload(e.target.files[0]);
@@ -166,8 +166,8 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ project, u
               </label>
 
               <label className="block text-sm">
-                <div className="text-slate-600 mb-1">Slug (public path)</div>
-                <input value={slugInput} onChange={(e) => setSlugInput(e.target.value)} className="w-full border rounded px-3 py-2" placeholder="zoca-cafe-review" />
+                <div className="text-slate-600 dark:text-slate-300 mb-1">Slug (public path)</div>
+                <input value={slugInput} onChange={(e) => setSlugInput(e.target.value)} className="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded px-3 py-2" placeholder="zoca-cafe-review" />
               </label>
 
               <div className="flex items-center space-x-3">
@@ -193,19 +193,26 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ project, u
                   }}>{i}★</button>
                 ))}
               </div>
-              <div className="text-sm text-slate-500">Public link: <a className="underline" href={qrDataUrl || '#'} target="_blank" rel="noreferrer">{qrDataUrl || '—'}</a></div>
-              <div className="mt-4">
-                <div className="text-xs text-slate-500 mb-1">QR (downloadable)</div>
-                {qrDataUrl ? (
-                  <a href={qrDataUrl} target="_blank" rel="noreferrer" className="inline-block border rounded p-2">Open Link</a>
-                ) : (
-                  <div className="text-sm text-slate-400">QR will be available after publish</div>
-                )}
-              </div>
             </div>
           </div>
         </div>
       </div>
+      {qrDataUrl && (
+        <div className="mt-6 bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800">
+          <div className="p-6">
+            <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-4">Shareable Link & QR Code</h2>
+            <div className="flex items-center space-x-4">
+              <div className="flex-shrink-0">
+                <img src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${qrDataUrl}`} alt="QR Code" className="w-32 h-32" />
+              </div>
+              <div className="flex-grow">
+                <p className="text-sm text-slate-600 dark:text-slate-400">Your public link:</p>
+                <a href={qrDataUrl} target="_blank" rel="noreferrer" className="text-primary-600 dark:text-primary-400 font-medium break-all">{qrDataUrl}</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

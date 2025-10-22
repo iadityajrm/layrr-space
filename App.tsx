@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import './src/loader.css';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
 import { DashboardPage } from './pages/DashboardPage';
@@ -7,9 +8,11 @@ import { TemplatesPage } from './pages/TemplatesPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { ProjectDetailPage } from './pages/ProjectDetailPage';
 import { TemplateDetailPage } from './pages/TemplateDetailPage';
+import { FeedbackPage } from './pages/FeedbackPage';
 import { LoginPage } from './pages/LoginPage';
 import { SignupPage } from './pages/SignupPage';
 import { PaymentModal } from './components/PaymentModal';
+import { NotificationPanel } from './components/NotificationPanel';
 import { supabase } from './src/lib/supabaseClient';
 import type { Session } from '@supabase/supabase-js';
 
@@ -29,10 +32,57 @@ function App() {
   const [selectedProject, setSelectedProject] = useState<Assignment | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
   const [isSidebarOpen, setSidebarOpen] = useState(false);
+  const [isNotificationPanelOpen, setNotificationPanelOpen] = useState(false);
 
   const [templateToBuy, setTemplateToBuy] = useState<Template | null>(null);
   const [theme, setTheme] = useState('light');
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (searchQuery) {
+      const lowerCaseQuery = searchQuery.toLowerCase();
+      const filteredProjects = projects.filter(p => p.title?.toLowerCase().includes(lowerCaseQuery));
+      const filteredTemplates = templates.filter(t => t.title?.toLowerCase().includes(lowerCaseQuery));
+      
+      const results: any[] = [
+        ...filteredProjects.map(p => ({ type: 'project', data: p })),
+        ...filteredTemplates.map(t => ({ type: 'template', data: t })),
+      ];
+
+      const pages = [
+        'Templates', 'Payouts', 'Projects', 'Categories', 'Transactions',
+        'Settings', 'Notifications', 'Activity Logs', 'Analytics',
+        'Support Tickets', 'System Status', 'Integrations', 'Feedback'
+      ];
+
+      pages.forEach(page => {
+        if (page.toLowerCase().includes(lowerCaseQuery)) {
+          results.push({ type: 'page', data: { name: page } });
+        }
+      });
+
+      if ('profile'.includes(lowerCaseQuery)) {
+        results.push({ type: 'page', data: { name: 'Profile' } });
+      }
+
+      setSearchResults(results);
+    } else {
+      setSearchResults([]);
+    }
+  }, [searchQuery, projects, templates]);
+
+  const handleSearchResultClick = (result: any) => {
+    if (result.type === 'project') {
+      setSelectedProject(result.data);
+    } else if (result.type === 'template') {
+      setSelectedTemplate(result.data);
+    } else if (result.type === 'page') {
+      setCurrentPage(result.data.name);
+    }
+    setSearchQuery('');
+    setSearchResults([]);
+  };
 
   useEffect(() => {
     const getSession = async () => {
@@ -244,6 +294,20 @@ function App() {
         return <TemplatesPage templates={templates} onSelectTemplate={setSelectedTemplate} />;
       case 'Profile':
         return <ProfilePage user={profile!} setUser={setProfile} />;
+      case 'Feedback':
+        return <FeedbackPage />;
+      // Add placeholders for other pages
+      case 'Payouts':
+      case 'Categories':
+      case 'Transactions':
+      case 'Settings':
+      case 'Notifications':
+      case 'Activity Logs':
+      case 'Analytics':
+      case 'Support Tickets':
+      case 'System Status':
+      case 'Integrations':
+        return <div className="text-white">{`${currentPage} page is not implemented yet.`}</div>;
       default:
         return <DashboardPage stats={stats} />;
     }
@@ -263,7 +327,11 @@ function App() {
   }
 
   if (!profile) {
-     return <div className="flex items-center justify-center min-h-screen bg-slate-50 dark:bg-slate-900">Fetching profile...</div>;
+     return (
+      <div className="flex items-center justify-center min-h-screen bg-slate-50 dark:bg-slate-900">
+        <div className="loader"></div>
+      </div>
+    );
   }
 
   return (
@@ -288,6 +356,9 @@ function App() {
             isSidebarOpen={isSidebarOpen}
             searchQuery={searchQuery}
             onSearchChange={setSearchQuery}
+            searchResults={searchResults}
+            onSearchResultClick={handleSearchResultClick}
+            onToggleNotificationPanel={() => setNotificationPanelOpen(!isNotificationPanelOpen)}
         />
         <main className="flex-1 overflow-x-hidden overflow-y-auto bg-slate-100 dark:bg-slate-950 p-6">
           {renderPage()}
@@ -300,6 +371,7 @@ function App() {
             onPaymentSuccess={handlePaymentSuccess}
         />
       )}
+      <NotificationPanel isOpen={isNotificationPanelOpen} onClose={() => setNotificationPanelOpen(false)} />
     </div>
   );
 }
