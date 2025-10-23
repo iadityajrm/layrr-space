@@ -13,6 +13,7 @@ import { LoginPage } from './pages/LoginPage';
 import { SignupPage } from './pages/SignupPage';
 import { PaymentModal } from './components/PaymentModal';
 import { NotificationPanel } from './components/NotificationPanel';
+import Chatbot from './components/Chatbot.tsx';
 import { supabase } from './src/lib/supabaseClient';
 import type { Session } from '@supabase/supabase-js';
 
@@ -360,9 +361,12 @@ function App() {
             onSearchResultClick={handleSearchResultClick}
             onToggleNotificationPanel={() => setNotificationPanelOpen(!isNotificationPanelOpen)}
         />
-        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-slate-100 dark:bg-slate-950 p-6">
-          {renderPage()}
-        </main>
+        <div className="flex flex-1 overflow-hidden">
+          <main className="flex-1 overflow-x-hidden overflow-y-auto bg-slate-100 dark:bg-slate-950 p-6">
+            {renderPage()}
+          </main>
+          <NotificationPanel isOpen={isNotificationPanelOpen} onClose={() => setNotificationPanelOpen(false)} />
+        </div>
       </div>
       {templateToBuy && (
         <PaymentModal 
@@ -371,7 +375,7 @@ function App() {
             onPaymentSuccess={handlePaymentSuccess}
         />
       )}
-      <NotificationPanel isOpen={isNotificationPanelOpen} onClose={() => setNotificationPanelOpen(false)} />
+      <Chatbot user={profile} />
     </div>
   );
 }
