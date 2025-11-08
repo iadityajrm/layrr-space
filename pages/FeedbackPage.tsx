@@ -1,28 +1,70 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '../src/lib/supabaseClient';
 import { Star } from 'lucide-react';
+import { useParams } from 'react-router-dom';
+import type { Project } from '../types';
 
 export const FeedbackPage: React.FC = () => {
+  const { slug } = useParams<{ slug: string }>();
+  const [project, setProject] = useState<Project | null>(null);
   const [feedback, setFeedback] = useState('');
   const [rating, setRating] = useState(0);
   const [submitting, setSubmitting] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchProject = async () => {
+      if (!slug) {
+        setError('Project slug not provided.');
+        setLoading(false);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('projects')
+        .select('*, templates(*)')
+        .eq('slug', slug)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error fetching project:', error);
+        setError('Failed to load project data.');
+      } else if (data) {
+        setProject(data);
+      } else {
+        setError('Project not found.');
+      }
+      setLoading(false);
+    };
+
+    fetchProject();
+  }, [slug]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
 
+    if (!project) {
+      alert('Project data not loaded. Cannot submit feedback.');
+      setSubmitting(false);
+      return;
+    }
+
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        throw new Error("You must be logged in to submit feedback.");
-      }
+      // User is not required to be logged in for public feedback
+      // if (!user) {
+      //   throw new Error("You must be logged in to submit feedback.");
+      // }
 
       const now = new Date();
       const { error } = await supabase.from('feedbacks').insert([
         {
-          username: user.email,
+          project_id: project.id,
+          username: user?.email || 'anonymous', // Use anonymous if user not logged in
           feedback,
-          Stars: rating,
+          stars: rating,
           time: now.toTimeString().split(' ')[0],
           date: now.toISOString().split('T')[0],
         },
@@ -43,9 +85,23 @@ export const FeedbackPage: React.FC = () => {
     }
   };
 
+  if (loading) {
+    return <div className="max-w-4xl mx-auto text-center text-slate-500 dark:text-slate-400">Loading project...</div>;
+  }
+
+  if (error) {
+    return <div className="max-w-4xl mx-auto text-center text-red-500">{error}</div>;
+  }
+
+  if (!project) {
+    return <div className="max-w-4xl mx-auto text-center text-red-500">Project data not available.</div>;
+  }
+
   return (
     <div className="max-w-4xl mx-auto animate-fade-in-up">
-      <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-6">Submit Feedback</h1>
+      <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-6">
+        {project.question_title || `Submit Feedback for ${project.business_name || project.project_name}`}
+      </h1>
       <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800">
         <form onSubmit={handleSubmit}>
           <div className="p-6 space-y-6">

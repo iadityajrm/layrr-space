@@ -17,20 +17,20 @@ import Chatbot from './components/Chatbot.tsx';
 import { supabase } from './src/lib/supabaseClient';
 import type { Session } from '@supabase/supabase-js';
 
-import type { Profile, Assignment, Template, StatCardData } from './types';
+import type { Profile, Project, Template, StatCardData } from './types';
 import { DashboardIcon, FolderIcon, CheckSquareIcon } from './components/Icons';
 
 function App() {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [projects, setProjects] = useState<Assignment[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [loading, setLoading] = useState(true);
   
   const [authPage, setAuthPage] = useState<'login' | 'signup'>('login');
   
   const [currentPage, setCurrentPage] = useState('Dashboard');
-  const [selectedProject, setSelectedProject] = useState<Assignment | null>(null);
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [isNotificationPanelOpen, setNotificationPanelOpen] = useState(false);
@@ -43,7 +43,7 @@ function App() {
   useEffect(() => {
     if (searchQuery) {
       const lowerCaseQuery = searchQuery.toLowerCase();
-      const filteredProjects = projects.filter(p => p.title?.toLowerCase().includes(lowerCaseQuery));
+      const filteredProjects = projects.filter(p => p.project_name?.toLowerCase().includes(lowerCaseQuery));
       const filteredTemplates = templates.filter(t => t.title?.toLowerCase().includes(lowerCaseQuery));
       
       const results: any[] = [
@@ -103,73 +103,51 @@ function App() {
   useEffect(() => {
     if (session?.user) {
       fetchProfile();
-      fetchAssignments();
+      fetchProjects();
       fetchTemplates();
     }
   }, [session]);
 
   const fetchProfile = async () => {
     if (!session?.user) return;
-    // user table uses user_id to store auth uid
     const uid = session.user.id;
 
-    // Try lookup by `user_id` first (your schema uses this column), then fall back to `id`.
     let { data, error } = await supabase
       .from('users')
-      .select('id, user_id, name, email, role, created_at, last_login, phone_number, upi_id, total_earnings')
-      .eq('user_id', uid)
+      .select('id, full_name, email, upi_id, phone_number, total_earnings, created_at')
+      .eq('id', uid)
       .maybeSingle();
 
     if (error) {
-      console.error('Error fetching profile by user_id:', error);
-    }
-
-    if (!data) {
-      // Try the other column (some schemas store the auth uid in `id`)
-      const res = await supabase
-        .from('users')
-        .select('id, user_id, name, email, role, created_at, last_login, phone_number, upi_id, total_earnings')
-        .eq('id', uid)
-        .maybeSingle();
-
-      if (res.error) console.error('Error fetching profile by id:', res.error);
-      data = res.data;
-      error = res.error;
-    }
-
-    if (error) {
-      // Unexpected DB error
       console.error('Error fetching profile:', error);
       return;
     }
 
     if (!data) {
-      // No visible row returned. This can happen if the row exists but RLS/policies block access
-      console.info('No profile row visible for auth uid', uid, '- check RLS policies and whether auth uid is stored in `id` or `user_id`.');
+      console.info('No profile row visible for auth uid', uid, '- check RLS policies.');
       setProfile(null);
       return;
     }
 
     console.info('Fetched profile row:', data);
-    setProfile(data as any);
+    setProfile(data as Profile);
   };
 
-  const fetchAssignments = async () => {
+  const fetchProjects = async () => {
     const { data, error } = await supabase
-      .from('assignments')
+      .from('projects')
       .select(`
         *,
         templates (
           id,
           category,
           preview_url,
-          price,
-          creator_id
+          price
         )
       `)
-      .order('assigned_at', { ascending: false });
-    if (error) console.error('Error fetching assignments:', error);
-    else setProjects(data as any[]); // reuse projects state for assignments
+      .order('created_at', { ascending: false });
+    if (error) console.error('Error fetching projects:', error);
+    else setProjects(data as Project[]);
   };
 
   const fetchTemplates = async () => {
@@ -217,17 +195,19 @@ function App() {
       return `a_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
     };
 
-    const newAssignment = {
-      assignment_id: generateAssignmentId(),
+    const newProject = {
       user_id: session.user.id,
       template_id: templateToBuy.id,
-      assigned_at: new Date().toISOString(),
-      status: 'Pending Verification',
+      template_category: templateToBuy.category,
+      project_name: templateToBuy.title || 'New Project', // Use template title as default project name
+      slug: `${templateToBuy.slug}-${Date.now()}`, // Generate a unique slug
+      status: 'pending_verification',
+      created_at: new Date().toISOString(),
     };
 
     const { data, error } = await supabase
-      .from('assignments')
-      .insert(newAssignment)
+      .from('projects')
+      .insert(newProject)
       .select(`
         *,
         templates (
@@ -240,31 +220,29 @@ function App() {
       .maybeSingle();
 
     if (error) {
-      // Log full error object for diagnosis
       try {
-        console.error('Error creating assignment (full):', JSON.stringify(error, null, 2));
+        console.error('Error creating project (full):', JSON.stringify(error, null, 2));
       } catch (e) {
-        console.error('Error creating assignment (object):', error);
+        console.error('Error creating project (object):', error);
       }
       console.error('Insert response data:', data);
 
-      // Give the user a more actionable alert
       const details = error?.details || error?.message || 'Unknown error';
-      alert(`Failed to create assignment: ${details}. Check RLS/policies and that the 'assignments' table exists and allows INSERT for this user.`);
+      alert(`Failed to create project: ${details}. Check RLS/policies and that the 'projects' table exists and allows INSERT for this user.`);
       return;
     }
 
     // Success
-    setProjects(prev => [data as any, ...prev]);
+    setProjects(prev => [data as Project, ...prev]);
     setTemplateToBuy(null);
     setCurrentPage('Projects');
-    setSelectedProject(data as any);
+    setSelectedProject(data as Project);
   };
 
   const normalizeStatus = (s?: string) => (s || '').toLowerCase();
 
   const stats: StatCardData[] = [
-    { title: 'Total Earnings', value: `₹${(profile as any)?.total_earnings ? (profile as any).total_earnings.toFixed(2) : '0.00'}`, icon: <DashboardIcon className="h-6 w-6 text-primary-600 dark:text-primary-300" /> },
+    { title: 'Total Earnings', value: `₹${profile?.total_earnings ? profile.total_earnings.toFixed(2) : '0.00'}`, icon: <DashboardIcon className="h-6 w-6 text-primary-600 dark:text-primary-300" /> },
     { title: 'Active Projects', value: projects.filter(p => {
       const st = normalizeStatus(p.status);
       return st === 'active' || st === 'pending verification' || st === 'pending_verification' || st === 'pending';
@@ -351,8 +329,8 @@ function App() {
         toggleTheme={toggleTheme}
       />
       <div className="flex-1 flex flex-col overflow-hidden">
-        <Header 
-            user={profile}
+        <Header
+            user={profile as Profile}
             onToggleSidebar={() => setSidebarOpen(!isSidebarOpen)}
             isSidebarOpen={isSidebarOpen}
             searchQuery={searchQuery}
@@ -375,7 +353,7 @@ function App() {
             onPaymentSuccess={handlePaymentSuccess}
         />
       )}
-      <Chatbot user={profile} />
+      <Chatbot user={{...profile, name: profile.full_name || profile.name || ''}} />
     </div>
   );
 }

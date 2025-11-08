@@ -12,45 +12,50 @@ export interface Template {
   instructions?: string | null;
   use_cases?: string | null;
   marketing_info?: string | null;
-  template_url?: string | null;
+      template_url?: string | null;
       is_featured: boolean;
+      slug?: string | null;
+      field_mapping?: Record<string, string> | null; // New field for dynamic template data
     }
 
     export interface Project {
       id: string;
       user_id: string;
-      template_id?: string;
-      // visible title for the assignment / project
-      title?: string | null;
-      // public slug and url for the review page
-      slug?: string | null;
-      public_url?: string | null;
+      template_id: string;
+      project_name: string;
+      slug: string;
       status: string;
-      // optional fields
       proof_photo_url?: string | null;
       created_at?: string;
       updated_at?: string;
-      // joined template info
-      assignment_id?: string;
-      templates?: Template[] | Template | null; // Joined from templates table
-    }
-
-    export interface Assignment extends Project {
-      assigned_at?: string | null;
-  template_id?: string;
+      template_category?: string | null;
+      templates?: Template | null; // Joined from templates table
+      business_name?: string | null;
+      logo_url?: string | null;
+      theme_color?: string | null;
+      redirect_url?: string | null;
+      question_title?: string | null;
+      internal_feedback_endpoint?: string | null;
+      qr_code_url?: string | null;
+      data1?: string | null;
+      data2?: string | null;
+      data3?: string | null;
+      data4?: string | null;
+      data5?: string | null;
+      data6?: string | null;
+      data7?: string | null;
+      data8?: string | null;
     }
 
     export interface Profile {
       id: string;
-      user_id?: string;
-      name: string;
+      full_name?: string | null;
+      name?: string | null; // Added for backward compatibility
       email: string;
-      role?: string;
-      created_at?: string;
-      last_login?: string;
-      phone_number?: string;
-      upi_id?: string;
+      upi_id?: string | null;
+      phone_number?: string | null;
       total_earnings?: number;
+      created_at?: string;
     }
 
     export interface StatCardData {

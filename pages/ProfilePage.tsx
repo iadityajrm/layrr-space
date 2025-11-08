@@ -12,7 +12,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ user, setUser }) => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteConfirmationEmail, setDeleteConfirmationEmail] = useState('');
   const [formData, setFormData] = useState({
-    name: '',
+    full_name: '',
     phone_number: '',
     upi_id: '',
   });
@@ -20,9 +20,9 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ user, setUser }) => {
   useEffect(() => {
     if (user) {
       setFormData({
-        name: (user as any).name || '',
-        phone_number: (user as any).phone_number || '',
-        upi_id: (user as any).upi_id || '',
+        full_name: user.full_name || '',
+        phone_number: user.phone_number || '',
+        upi_id: user.upi_id || '',
       });
     }
   }, [user]);
@@ -36,44 +36,28 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ user, setUser }) => {
     e.preventDefault();
     setLoading(true);
     try {
-      const uid = (user as any).user_id || user.id;
+      const uid = user.id;
 
-      // First try updating by user_id
-      let res = await supabase
+      const { data, error } = await supabase
         .from('users')
         .update({
-          name: formData.name,
+          full_name: formData.full_name,
           phone_number: formData.phone_number,
           upi_id: formData.upi_id,
         })
-        .eq('user_id', uid)
+        .eq('id', uid)
         .select()
         .maybeSingle();
 
-      // If no row was updated, try the other column (id)
-      if (!res.data) {
-        console.info('No row updated by user_id, trying id=uid fallback');
-        res = await supabase
-          .from('users')
-          .update({
-            name: formData.name,
-            phone_number: formData.phone_number,
-            upi_id: formData.upi_id,
-          })
-          .eq('id', uid)
-          .select()
-          .maybeSingle();
-      }
-
-      if (res.error) {
-        console.error('Error updating profile:', res.error);
-        alert('Error updating profile: ' + res.error.message);
-      } else if (!res.data) {
+      if (error) {
+        console.error('Error updating profile:', error);
+        alert('Error updating profile: ' + error.message);
+      } else if (!data) {
         console.warn('No profile row was updated. Check RLS policies and whether the uid matches user row columns.');
         alert('No profile row was updated — check RLS/policies or whether the user row exists for this account.');
       } else {
         alert('Profile updated successfully!');
-        setUser(res.data as Profile);
+        setUser(data as Profile);
       }
     } catch (err: any) {
       console.error('Unexpected error updating profile:', err);
@@ -121,8 +105,8 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ user, setUser }) => {
               <input type="email" id="email" value={user.email} disabled className="mt-1 block w-full px-3 py-2 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-md shadow-sm sm:text-sm cursor-not-allowed" />
             </div>
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Full Name</label>
-              <input type="text" name="name" id="name" value={formData.name} onChange={handleInputChange} className="mt-1 block w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm" />
+              <label htmlFor="full_name" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Full Name</label>
+              <input type="text" name="full_name" id="full_name" value={formData.full_name} onChange={handleInputChange} className="mt-1 block w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm" />
             </div>
             <div>
               <label htmlFor="phone_number" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Mobile Number</label>

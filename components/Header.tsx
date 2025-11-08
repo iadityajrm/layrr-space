@@ -1,9 +1,6 @@
 import React from 'react';
 import { MenuIcon, CloseIcon, SearchIcon, BellIcon, ChevronDownIcon } from './Icons';
-type Profile = {
-  name: string;
-  email: string;
-};
+import type { Profile } from '../types';
 
 interface HeaderProps {
   user: Profile;
@@ -43,7 +40,7 @@ export const Header: React.FC<HeaderProps> = ({ user, onToggleSidebar, isSidebar
                     className="block px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700"
                     role="menuitem"
                   >
-                    {result.type === 'project' && `Project: ${result.data.title}`}
+                    {result.type === 'project' && `Project: ${result.data.project_name}`}
                     {result.type === 'template' && `Template: ${result.data.title}`}
                     {result.type === 'page' && `Go to: ${result.data.name}`}
                   </a>
@@ -59,10 +56,10 @@ export const Header: React.FC<HeaderProps> = ({ user, onToggleSidebar, isSidebar
         </button>
         <div className="flex items-center space-x-3">
           <div className="w-10 h-10 rounded-full bg-primary-500 flex items-center justify-center text-white font-bold">
-            {user.name?.charAt(0).toUpperCase()}
+            {user.full_name?.charAt(0).toUpperCase() || user.email.charAt(0).toUpperCase()}
           </div>
           <div className="hidden md:block">
-            <p className="font-semibold text-sm text-slate-800 dark:text-slate-200">{user.name}</p>
+            <p className="font-semibold text-sm text-slate-800 dark:text-slate-200">{user.full_name || user.email}</p>
             <p className="text-xs text-slate-500 dark:text-slate-400">{user.email}</p>
           </div>
           <button className="hidden md:block p-1 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800">
