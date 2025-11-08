@@ -64,6 +64,162 @@
   }
 }
 </script>
+  <style>
+    /* Global scroll behavior modifications */
+    html {
+      overflow: hidden;
+      height: 100%;
+    }
+    
+    body {
+      overflow: hidden;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+    }
+    
+    /* Preserve scroll functionality for internal containers */
+    .overflow-auto,
+    .overflow-y-auto,
+    .overflow-x-auto,
+    [class*="overflow-"] {
+      -webkit-overflow-scrolling: touch;
+    }
+    
+    /* Ensure proper height calculations */
+    #root {
+      height: 100vh;
+      overflow: hidden;
+    }
+    
+    /* Fix for chat button whitespace issue */
+    .fixed.bottom-6.right-6 {
+      position: fixed !important;
+      bottom: 1.5rem !important;
+      right: 1.5rem !important;
+      z-index: 50 !important;
+      pointer-events: none !important;
+    }
+    
+    /* Responsive fixes */
+    @media (max-width: 640px) {
+      .fixed.bottom-6.right-6 {
+        bottom: 1rem !important;
+        right: 1rem !important;
+      }
+    }
+    
+    /* Fallback for older browsers */
+    @supports not (position: fixed) {
+      .fixed.bottom-6.right-6 {
+        position: absolute !important;
+        bottom: 1.5rem !important;
+        right: 1.5rem !important;
+      }
+    }
+    
+    /* Ensure proper container scrolling */
+    .flex-1.overflow-hidden {
+      overflow: hidden !important;
+    }
+    
+    /* Prevent any extra whitespace */
+    * {
+      box-sizing: border-box;
+    }
+    
+    /* Ensure proper height calculations for nested containers */
+    .h-screen {
+      height: 100vh !important;
+      max-height: 100vh !important;
+    }
+    
+    /* Mobile-specific fixes */
+    @media (max-width: 768px) {
+      html, body {
+        position: fixed;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+      }
+       
+       /* Fix chat button positioning on mobile */
+       .fixed.bottom-6.right-6 {
+         bottom: 1rem !important;
+         right: 1rem !important;
+       }
+       
+       /* Ensure proper button sizing on mobile */
+       .max-sm\:w-\[calc\(100vw-2rem\)\] {
+         width: calc(100vw - 2rem) !important;
+       }
+       
+       /* Fix button text wrapping */
+       .max-sm\:text-xs {
+         font-size: 0.75rem !important;
+       }
+       
+       /* Ensure proper spacing in mobile layouts */
+       .max-sm\:px-4 {
+         padding-left: 1rem !important;
+         padding-right: 1rem !important;
+       }
+       
+       /* Fix overflow in mobile containers */
+       .max-sm\:overflow-hidden {
+         overflow: hidden !important;
+       }
+       
+       /* Fix flex layouts on mobile */
+       @media (max-width: 640px) {
+         .sm\:flex-row {
+           flex-direction: column !important;
+         }
+         
+         .sm\:items-center {
+           align-items: stretch !important;
+         }
+         
+         .sm\:justify-between {
+           justify-content: flex-start !important;
+         }
+         
+         .sm\:w-auto {
+           width: 100% !important;
+         }
+         
+         .sm\:text-base {
+           font-size: 0.875rem !important;
+         }
+         
+         /* Fix header text sizing */
+         .text-2xl {
+           font-size: 1.5rem !important;
+         }
+         
+         /* Fix spacing in mobile containers */
+         .p-6 {
+           padding: 1rem !important;
+         }
+         
+         /* Ensure proper input sizing */
+         input[type="text"], input[type="color"], input[type="file"] {
+           font-size: 16px !important; /* Prevents zoom on iOS */
+         }
+       }
+    }
+    
+    /* Ensure smooth scrolling for internal containers */
+    .overflow-y-auto {
+      scroll-behavior: smooth;
+      -webkit-overflow-scrolling: touch;
+    }
+    
+    /* Prevent layout shifts */
+    .animate-fade-in-up {
+      will-change: transform, opacity;
+    }
+  </style>
 </head>
   <body class="bg-slate-50 dark:bg-slate-900">
     <div id="root"></div>

@@ -134,15 +134,14 @@ function App() {
   };
 
   const fetchProjects = async () => {
-    const { data, error } = await supabase
-      .from('projects')
-      .select(`
+    const { data, error } = await supabase.from('projects').select(`
         *,
         templates (
           id,
-          category,
+          template_category,
           preview_url,
-          price
+          price,
+          field_mapping
         )
       `)
       .order('created_at', { ascending: false });
@@ -184,6 +183,13 @@ function App() {
     setAuthPage('login');
   };
   
+  const handleProjectDelete = (projectId: string) => {
+    setProjects(projects.filter(p => p.id !== projectId));
+    if (selectedProject?.id === projectId) {
+      setSelectedProject(null);
+    }
+  };
+
   const handlePaymentSuccess = async () => {
     if (!templateToBuy || !session?.user) return;
 
@@ -212,9 +218,10 @@ function App() {
         *,
         templates (
           id,
-          category,
+          template_category,
           preview_url,
-          price
+          price,
+          field_mapping
         )
       `)
       .maybeSingle();
@@ -268,7 +275,7 @@ function App() {
       case 'Dashboard':
         return <DashboardPage stats={stats} />;
       case 'Projects':
-        return <ProjectsPage projects={projects} onSelectProject={setSelectedProject} />;
+        return <ProjectsPage projects={projects} onSelectProject={setSelectedProject} onProjectDelete={handleProjectDelete} />;
       case 'Templates':
         return <TemplatesPage templates={templates} onSelectTemplate={setSelectedTemplate} />;
       case 'Profile':
@@ -314,7 +321,7 @@ function App() {
   }
 
   return (
-    <div className="flex h-screen bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-200">
+    <div className="flex h-screen bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-200 overflow-hidden">
       <Sidebar 
         activeItem={currentPage} 
         onNavigate={(page) => {
@@ -340,7 +347,7 @@ function App() {
             onToggleNotificationPanel={() => setNotificationPanelOpen(!isNotificationPanelOpen)}
         />
         <div className="flex flex-1 overflow-hidden">
-          <main className="flex-1 overflow-x-hidden overflow-y-auto bg-slate-100 dark:bg-slate-950 p-6">
+          <main className="flex-1 overflow-x-hidden overflow-y-auto bg-slate-100 dark:bg-slate-950 p-6" style={{ height: 'calc(100vh - 4rem)', WebkitOverflowScrolling: 'touch' }}>
             {renderPage()}
           </main>
           <NotificationPanel isOpen={isNotificationPanelOpen} onClose={() => setNotificationPanelOpen(false)} />
@@ -353,7 +360,10 @@ function App() {
             onPaymentSuccess={handlePaymentSuccess}
         />
       )}
-      <Chatbot user={{...profile, name: profile.full_name || profile.name || ''}} />
+      {/* Chatbot positioned absolutely to prevent scroll space issues */}
+      <div className="fixed bottom-6 right-6 z-50 pointer-events-none">
+        <Chatbot user={{...profile, name: profile.full_name || profile.name || ''}} />
+      </div>
     </div>
   );
 }

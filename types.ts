@@ -4,6 +4,7 @@ export interface Template {
       title: string;
       description: string;
       category: string;
+      template_category: string; // Field name in database
       price: number | null;
       commission_rate: number | null;
       preview_url: string | null;

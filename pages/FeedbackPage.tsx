@@ -23,8 +23,9 @@ export const FeedbackPage: React.FC = () => {
 
       const { data, error } = await supabase
         .from('projects')
-        .select('*, templates(*)')
+        .select('id, project_name, user_id, status, slug, templates(id, template_name, question_title)')
         .eq('slug', slug)
+        .eq('status', 'published')
         .maybeSingle();
 
       if (error) {
@@ -67,6 +68,7 @@ export const FeedbackPage: React.FC = () => {
           stars: rating,
           time: now.toTimeString().split(' ')[0],
           date: now.toISOString().split('T')[0],
+          created_at: now.toISOString(),
         },
       ]);
 
@@ -100,7 +102,7 @@ export const FeedbackPage: React.FC = () => {
   return (
     <div className="max-w-4xl mx-auto animate-fade-in-up">
       <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-6">
-        {project.question_title || `Submit Feedback for ${project.business_name || project.project_name}`}
+        {project.templates?.question_title || `Submit Feedback for ${project.project_name}`}
       </h1>
       <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800">
         <form onSubmit={handleSubmit}>

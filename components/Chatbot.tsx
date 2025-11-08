@@ -21,7 +21,7 @@ export const Chatbot: React.FC<ChatbotProps> = ({ user }) => {
 
   const systemInstruction = "You are Layrr, an AI assistant for a platform that helps users manage projects, templates, and feedback. Provide helpful and concise answers. Encourage users to create tickets for specific issues or support requests. Do not generate code or complex technical solutions unless explicitly asked.";
 
-  const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY as string);
+  const genAI = new GoogleGenerativeAI('AIzaSyAtvPNSL7eAHL8RISX4NEUA8ajEeOTavPA');
   const model = genAI.getGenerativeModel({
     model: "gemini-2.0-flash",
     systemInstruction: {
@@ -116,20 +116,18 @@ export const Chatbot: React.FC<ChatbotProps> = ({ user }) => {
   };
 
   return (
-    <div>
-      <div className={`fixed bottom-6 right-6 z-50`}> 
-        <div className="relative">
-          <button
-            onClick={() => setIsOpen(v => !v)}
-            className="bg-primary-500 hover:bg-primary-600 text-white rounded-full w-14 h-14 flex items-center justify-center shadow-lg focus:outline-none"
-            aria-label="Open Layrr chat"
-          >
-            {isOpen ? <CloseIcon className="h-5 w-5" /> : <ChatIcon className="h-6 w-6" />}
-          </button>
-        </div>
+    <div className="pointer-events-auto" data-testid="chatbot-component">
+      <div className="relative">
+        <button
+          onClick={() => setIsOpen(v => !v)}
+          className="bg-primary-500 hover:bg-primary-600 text-white rounded-full w-14 h-14 flex items-center justify-center shadow-lg focus:outline-none"
+          aria-label="Open Layrr chat"
+        >
+          {isOpen ? <CloseIcon className="h-5 w-5" /> : <ChatIcon className="h-6 w-6" />}
+        </button>
       </div>
 
-      <div className={`fixed right-6 bottom-24 w-80 max-h-[70vh] bg-white dark:bg-slate-900 rounded-xl shadow-2xl z-50 flex flex-col overflow-hidden transform transition-all duration-300 ease-out ${isOpen ? 'translate-y-0 opacity-100 pointer-events-auto' : 'translate-y-6 opacity-0 pointer-events-none'}`}>
+      <div className={`fixed right-6 bottom-24 w-80 max-h-[70vh] bg-white dark:bg-slate-900 rounded-xl shadow-2xl z-50 flex flex-col overflow-hidden transform transition-all duration-300 ease-out ${isOpen ? 'translate-y-0 opacity-100 pointer-events-auto' : 'translate-y-6 opacity-0 pointer-events-none'} sm:w-96 max-sm:right-4 max-sm:bottom-20 max-sm:w-[calc(100vw-2rem)] max-sm:max-h-[60vh]`}>
         <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <div className="w-8 h-8 rounded-full bg-primary-500 flex items-center justify-center text-white font-bold">L</div>
@@ -182,8 +180,7 @@ export const Chatbot: React.FC<ChatbotProps> = ({ user }) => {
               )}
             </div>
 
-            <div className="sticky bottom-0 bg-white dark:bg-slate-900 p-3 border-t border-slate-200 dark:border-slate-800 z-10">
-              <div className="text-xs text-slate-500 dark:text-slate-400 mb-2">Try: "How do I use templates?"  •  "Report a bug"  •  "How to withdraw earnings"</div>
+            <div className="bg-white dark:bg-slate-900 p-3 border-t border-slate-200 dark:border-slate-800 z-10">
               <div className="flex items-center space-x-2">
                 <input
                   value={input}

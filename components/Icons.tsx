@@ -19,7 +19,10 @@ import {
     Info,
     CheckCircle,
     Lightbulb,
-    MessageSquare
+    MessageSquare,
+    Trash2,
+    Upload,
+    XCircle
 } from 'lucide-react';
 
 export const ChatIcon = MessageSquare;
@@ -49,3 +52,5 @@ export const ShoppingCartIcon = ShoppingCart;
 export const InfoIcon = Info;
 export const CheckCircleIcon = CheckCircle;
 export const LightBulbIcon = Lightbulb;
+export const TrashIcon = Trash2;
+export { Upload, XCircle };
