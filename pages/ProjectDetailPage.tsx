@@ -127,6 +127,7 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ project, u
   };
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [logoFileName, setLogoFileName] = useState<string | null>(null);
   const [currentProject, setCurrentProject] = useState<Project>(project);
   const [saving, setSaving] = useState(false);
   const [publishing, setPublishing] = useState(false);
@@ -137,6 +138,10 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ project, u
   const [verificationError, setVerificationError] = useState<string | null>(null);
   const [verificationSuccess, setVerificationSuccess] = useState(false);
   const [locationMetadata, setLocationMetadata] = useState<{lat: number, lng: number, timestamp: string} | null>(null);
+  
+  // QR code states
+  const [qrLoading, setQrLoading] = useState(false);
+  const [qrError, setQrError] = useState<string | null>(null);
 
   useEffect(() => {
     setCurrentProject(project);
@@ -147,8 +152,7 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ project, u
   };
 
   const generatePublicUrl = (slug: string) => {
-    const origin = window.location.origin;
-    return `${origin}/r/${slug}`;
+    return `https://www.layrr.space/${slug}`;
   };
 
   const handleLogoUpload = async (file: File) => {
@@ -362,20 +366,35 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ project, u
                 type="color"
                 value={currentProject.theme_color || '#0ea5a4'}
                 onChange={(e) => setCurrentProject(prev => ({ ...prev, theme_color: e.target.value }))}
+                className="w-16 h-10 p-0 border border-slate-300 dark:border-slate-700 rounded-lg bg-transparent cursor-pointer"
+                aria-label="Choose theme color"
               />
             </label>
 
             <label className="block text-sm">
               <div className="text-slate-600 dark:text-slate-300 mb-1">Logo Upload (optional)</div>
               <input
+                id="logo-upload"
                 type="file"
                 accept="image/*"
+                className="sr-only"
                 onChange={async (e) => {
                   if (!e.target.files || !e.target.files[0]) return;
-                  const publicUrl = await handleLogoUpload(e.target.files[0]);
+                  const file = e.target.files[0];
+                  setLogoFileName(file.name);
+                  const publicUrl = await handleLogoUpload(file);
                   if (publicUrl) setCurrentProject(prev => ({ ...prev, logo_url: publicUrl }));
                 }}
               />
+              <label
+                htmlFor="logo-upload"
+                className="inline-flex items-center px-3 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 cursor-pointer text-sm"
+              >
+                Choose File
+              </label>
+              {logoFileName && (
+                <div className="text-xs text-slate-500 dark:text-slate-400 mt-2">Selected: {logoFileName}</div>
+              )}
               {uploading && <div className="text-sm text-slate-500 mt-2">Uploading...</div>}
               {uploadError && <div className="text-sm text-red-500 mt-2">{uploadError}</div>}
             </label>
@@ -390,16 +409,76 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ project, u
               />
             </label>
 
+            {/* QR Code Component */}
+            <div className="mt-4 bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-4">
+              <div className="flex items-start sm:items-center justify-between gap-4">
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm text-slate-600 dark:text-slate-300 mb-1">Public URL</div>
+                  <div className="text-primary-600 dark:text-primary-400 font-medium break-all" aria-live="polite">
+                    {currentProject.slug ? `https://www.layrr.space/${currentProject.slug}` : 'Enter a slug to generate URL'}
+                  </div>
+                </div>
+                <div className="flex-shrink-0">
+                  {currentProject.slug ? (
+                    <img
+                      src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`https://www.layrr.space/${currentProject.slug}`)}`}
+                      alt={"QR code for " + `https://www.layrr.space/${currentProject.slug}`}
+                      className="w-24 h-24 sm:w-32 sm:h-32 rounded-lg border border-slate-200 dark:border-slate-700"
+                      onLoad={() => setQrLoading(false)}
+                      onError={() => { setQrError('Failed to load QR code'); setQrLoading(false); }}
+                    />
+                  ) : (
+                    <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-400 text-xs">
+                      No slug
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="mt-3 flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (!currentProject.slug) return;
+                    try {
+                      setQrError(null);
+                      setQrLoading(true);
+                      const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`https://www.layrr.space/${currentProject.slug}`)}`;
+                      const res = await fetch(qrSrc);
+                      const blob = await res.blob();
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = `layrr-qr-${currentProject.slug}.png`;
+                      document.body.appendChild(a);
+                      a.click();
+                      a.remove();
+                      URL.revokeObjectURL(url);
+                    } catch (e) {
+                      setQrError('Failed to download QR code');
+                    } finally {
+                      setQrLoading(false);
+                    }
+                  }}
+                  disabled={!currentProject.slug || qrLoading}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${!currentProject.slug || qrLoading ? 'bg-slate-300 text-slate-500 cursor-not-allowed' : 'bg-primary-600 text-white hover:bg-primary-700'}`}
+                  aria-label="Download QR code"
+                >
+                  {qrLoading ? 'Downloading...' : 'Download QR'}
+                </button>
+                {qrError && <span className="text-sm text-red-600" role="alert">{qrError}</span>}
+              </div>
+            </div>
+
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mt-6">
               <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                <button onClick={handleSave} disabled={saving} className="px-4 py-2 bg-primary-600 text-white rounded hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm sm:text-base">{saving ? 'Saving...' : 'Save Changes'}</button>
-                <button onClick={() => setCurrentProject(project)} className="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-sm sm:text-base">Reset</button>
+                <button onClick={handleSave} disabled={saving} className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm sm:text-base">{saving ? 'Saving...' : 'Save Changes'}</button>
+                <button onClick={() => setCurrentProject(project)} className="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-sm sm:text-base">Reset</button>
               </div>
               {currentProject.status !== 'approved' && (
                 <button
                   onClick={handlePublish}
                   disabled={publishing}
-                  className={`px-4 py-2 text-sm font-medium rounded w-full sm:w-auto ${
+                  className={`px-4 py-2 text-sm font-medium rounded-lg w-full sm:w-auto ${
                     currentProject.status === 'published' 
                       ? 'bg-orange-600 hover:bg-orange-700 text-white' 
                       : 'bg-green-600 hover:bg-green-700 text-white'
@@ -413,7 +492,7 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ project, u
         </div>
       </div>
       {/* Verification Section */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800">
+      <div className="mt-8 bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800">
         <div className="p-6">
           <h3 className="font-semibold text-slate-800 dark:text-slate-200 mb-4">Service Verification</h3>
           <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">Upload a timestamped photo of your completed template to verify service completion.</p>
@@ -509,22 +588,7 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ project, u
         </div>
       </div>
 
-      {currentProject.qr_code_url && (
-        <div className="mt-6 bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800">
-          <div className="p-6">
-            <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-4">Shareable Link & QR Code</h2>
-            <div className="flex items-center space-x-4">
-              <div className="flex-shrink-0">
-                <img src={currentProject.qr_code_url} alt="QR Code" className="w-32 h-32" />
-              </div>
-              <div className="flex-grow">
-                <p className="text-sm text-slate-600 dark:text-slate-400">Your public link:</p>
-                <a href={currentProject.slug ? generatePublicUrl(currentProject.slug) : '#'} target="_blank" rel="noreferrer" className="text-primary-600 dark:text-primary-400 font-medium break-all">{currentProject.slug ? generatePublicUrl(currentProject.slug) : 'N/A'}</a>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* QR code handled inline near slug; legacy section removed */}
     </div>
   );
 };
