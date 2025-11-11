@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import type { Project, Profile, Template } from '../types';
 import { supabase } from '../src/lib/supabaseClient';
 import { ArrowLeftIcon, Upload, CheckCircleIcon, XCircle } from '../components/Icons';
@@ -120,50 +121,36 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ project, u
     setVerificationError(null);
 
     try {
-      // Upload image to Supabase Storage
-      const fileExt = verificationImage.name.split('.').pop();
-      const fileName = `${currentProject.id}-${Date.now()}.${fileExt}`;
-      const filePath = `verification-images/${fileName}`;
+      // Use secure upload API to send file to Cloudinary and record in Supabase
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      if (!token) throw new Error('Missing auth token. Please re-login.');
 
-      const { error: uploadError } = await supabase.storage
-        .from('project-verification')
-        .upload(filePath, verificationImage);
+      const formData = new FormData();
+      formData.append('image', verificationImage);
+      formData.append('projectId', currentProject.id);
 
-      if (uploadError) {
-        throw uploadError;
+      const resp = await fetch('/api/upload-verification', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+      if (!resp.ok) {
+        let errMsg = 'Upload failed';
+        try {
+          const errJson = await resp.json();
+          errMsg = errJson?.error || errMsg;
+          if (errJson?.details) errMsg += `: ${errJson.details}`;
+        } catch {
+          const errText = await resp.text().catch(() => '');
+          if (errText) errMsg = errText;
+        }
+        throw new Error(errMsg);
       }
-
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('project-verification')
-        .getPublicUrl(filePath);
-
-      // Update project with verification data
-      const { error: updateError } = await supabase
-        .from('projects')
-        .update({
-          proof_photo_url: publicUrl,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', currentProject.id);
-
-      if (updateError) {
-        throw updateError;
-      }
-
-      // Create audit trail
-      const { error: auditError } = await supabase
-        .from('verification_audits')
-        .insert({
-          project_id: currentProject.id,
-          image_url: publicUrl,
-          uploaded_by: user?.id,
-          created_at: new Date().toISOString()
-        });
-
-      if (auditError) {
-        console.warn('Audit trail creation failed:', auditError);
-      }
+      const result = await resp.json();
+      const publicUrl = result?.url as string;
 
       setVerificationSuccess(true);
       setVerificationImage(null);
@@ -391,7 +378,7 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ project, u
             </div>
           </div>
         </div>
-        <div className="p-6">
+        <div className="p-6 pb-8">
           <h3 className="font-semibold text-slate-800 dark:text-slate-200 mb-4">Customize Project</h3>
           {currentProject.templates?.instructions && (
             <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">{currentProject.templates.instructions}</p>
@@ -614,7 +601,7 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ project, u
               <label className="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-2">
                 Upload Verification Photo
               </label>
-              <div className="border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-lg p-6 text-center hover:border-slate-400 dark:hover:border-slate-600 transition-colors">
+              <div className="border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-lg p-6 text-center hover:border-slate-400 dark:hover:border-slate-600 transition-colors w-full">
                 <input
                   type="file"
                   accept="image/jpeg,image/jpg,image/png"
@@ -720,28 +707,31 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ project, u
       </div>
 
       {/* Preview Modal */}
-      {previewOpen && previewSrc && (
-        <div
-          className="fixed inset-0 bg-black/70 z-[9999] flex items-center justify-center transition-opacity duration-300"
-          onClick={() => setPreviewOpen(false)}
-          aria-modal="true"
-          role="dialog"
-        >
-          <div className="relative max-w-[95vw] max-h-[85vh] p-2" onClick={(e) => e.stopPropagation()}>
-            <button
-              className="absolute top-2 right-2 bg-black/60 text-white rounded-full p-2 hover:bg-black/80 transition-colors duration-300"
-              onClick={() => setPreviewOpen(false)}
-              aria-label="Close preview"
-            >
-              ×
-            </button>
-            <img
-              src={previewSrc}
-              alt="Preview"
-              className="w-[90vw] h-[80vh] max-w-full max-h-[80vh] object-contain rounded shadow-lg transition-transform duration-300"
-            />
+      {previewOpen && previewSrc && createPortal(
+        (
+          <div
+            className="fixed inset-0 w-screen h-screen bg-black/70 z-[9999] flex items-center justify-center transition-opacity duration-300"
+            onClick={() => setPreviewOpen(false)}
+            aria-modal="true"
+            role="dialog"
+          >
+            <div className="relative max-w-[95vw] max-h-[85vh] p-2" onClick={(e) => e.stopPropagation()}>
+              <button
+                className="absolute top-2 right-2 bg-black/60 text-white rounded-full p-2 hover:bg-black/80 transition-colors duration-300"
+                onClick={() => setPreviewOpen(false)}
+                aria-label="Close preview"
+              >
+                ×
+              </button>
+              <img
+                src={previewSrc}
+                alt="Preview"
+                className="w-[90vw] h-[80vh] max-w-full max-h-[80vh] object-contain rounded shadow-lg transition-transform duration-300"
+              />
+            </div>
           </div>
-        </div>
+        ),
+        document.body
       )}
 
       {/* QR code handled inline near slug; legacy section removed */}

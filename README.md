@@ -19,6 +19,40 @@ View your app in AI Studio: https://ai.studio/apps/drive/1miNZqBHJVYSc13_oxjgNyA
 3. Run the app:
    `npm run dev`
 
+### Secure Image Upload Server (Cloudinary + Supabase)
+
+- Configure environment by copying `.env.example` to `.env.local` and setting values:
+  - `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`
+  - `SUPABASE_URL`, `SUPABASE_ANON_KEY`
+- Start both frontend and server:
+  - `npm run dev:full`
+  - Frontend runs at `http://localhost:3000`, API server at `http://localhost:4000` (proxied at `/api`).
+
+#### Endpoint
+- `POST /api/upload-verification`
+  - Auth: `Authorization: Bearer <Supabase JWT>`
+  - Body: `multipart/form-data`
+    - `image`: file (jpeg/png)
+    - `projectId`: string
+  - Validates type, size (≤ 5MB input, compressed to ≤ 500KB), and dimensions (max width 1600).
+  - Uploads to Cloudinary folder `verification-images/<projectId>` with secure URL.
+  - Updates Supabase: `projects.proof_photo_url` and inserts into `verification_audits`.
+  - Response: `{ url, width, height, bytes, quality, public_id }`.
+
+#### Security & Best Practices
+- Secrets are only read from environment; never exposed client-side.
+- Endpoint uses rate limiting (5 req/min/IP) and Supabase JWT auth.
+- Robust error handling and logging via `morgan` and structured responses.
+
+#### Testing Guidance
+- Verify Cloudinary uploads manually with various image types/sizes.
+- Confirm Supabase records are updated (projects and verification_audits).
+- Validate error cases (invalid type/oversized image/missing auth/network errors).
+
+#### Limitations
+- Delivery URLs are public secure (`https`). For private/authenticated delivery, configure Cloudinary `access_mode` and signed URLs.
+- Server is for local/dev. Deploy behind HTTPS with proper secrets management for production.
+
 ## Recent Updates
 
 ### Enhanced User Experience Features

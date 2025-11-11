@@ -55,16 +55,14 @@ export const Header: React.FC<HeaderProps> = ({ user, onToggleSidebar, isSidebar
           <BellIcon className="h-6 w-6" />
         </button>
         <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 rounded-full bg-primary-500 flex items-center justify-center text-white font-bold">
-            {user.full_name?.charAt(0).toUpperCase() || user.email.charAt(0).toUpperCase()}
-          </div>
           <div className="hidden md:block">
             <p className="font-semibold text-sm text-slate-800 dark:text-slate-200">{user.full_name || user.email}</p>
             <p className="text-xs text-slate-500 dark:text-slate-400">{user.email}</p>
           </div>
-          <button className="hidden md:block p-1 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800">
-            <ChevronDownIcon className="h-5 w-5" />
-          </button>
+          <div className="w-10 h-10 rounded-full bg-primary-500 flex items-center justify-center text-white font-bold">
+            {user.full_name?.charAt(0).toUpperCase() || user.email.charAt(0).toUpperCase()}
+          </div>
+
         </div>
       </div>
     </header>
