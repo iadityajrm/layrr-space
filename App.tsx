@@ -114,7 +114,7 @@ function App() {
 
     let { data, error } = await supabase
       .from('users')
-      .select('id, full_name, email, upi_id, phone_number, total_earnings, created_at')
+      .select('id, full_name, email, upi_id, phone_number, status, total_earnings, created_at')
       .eq('id', uid)
       .maybeSingle();
 
@@ -132,6 +132,8 @@ function App() {
     console.info('Fetched profile row:', data);
     setProfile(data as Profile);
   };
+
+  const isSuspended = profile?.status === 'suspended';
 
   const fetchProjects = async () => {
     const { data, error } = await supabase.from('projects').select(`
@@ -258,6 +260,16 @@ function App() {
   ];
 
   const renderPage = () => {
+    if (isSuspended) {
+      return (
+        <div className="p-6">
+          <div className="rounded-lg border border-red-400 bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-200 p-4">
+            <p className="font-semibold">Account suspended - please contact support</p>
+            <p className="mt-2 text-sm">If you believe this is a mistake, reach out to support at <a href="mailto:support@layrr.space" className="underline">support@layrr.space</a>.</p>
+          </div>
+        </div>
+      );
+    }
     if (selectedProject) {
       return <ProjectDetailPage project={selectedProject} user={profile!} onBack={() => setSelectedProject(null)} onProjectUpdate={(updatedProject) => {
         setProjects(projects.map(p => p.id === updatedProject.id ? updatedProject : p));

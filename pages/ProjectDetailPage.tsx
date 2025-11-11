@@ -11,49 +11,106 @@ interface ProjectDetailPageProps {
 }
 
 export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ project, user, onBack, onProjectUpdate }) => {
+  const isSuspended = user?.status === 'suspended';
   // Verification functions
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+  const [verificationProcessing, setVerificationProcessing] = useState(false);
+  const [processedInfo, setProcessedInfo] = useState<{ width: number; height: number; sizeKB: number; quality: number } | null>(null);
 
-    // Validate file type and size
-    const validTypes = ['image/jpeg', 'image/jpg', 'image/png'];
-    if (!validTypes.includes(file.type)) {
-      setVerificationError('Please upload a JPG or PNG image');
-      return;
-    }
+  const processImage = async (file: File): Promise<File | null> => {
+    try {
+      // Validate file type
+      const validTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+      if (!validTypes.includes(file.type)) {
+        setVerificationError('Please upload a JPG or PNG image');
+        return null;
+      }
 
-    if (file.size > 5 * 1024 * 1024) { // 5MB limit
-      setVerificationError('Image size must be less than 5MB');
-      return;
-    }
+      // Read into Image element
+      const objectUrl = URL.createObjectURL(file);
+      const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+        const image = new Image();
+        image.onload = () => resolve(image);
+        image.onerror = () => reject(new Error('Failed to load image'));
+        image.src = objectUrl;
+      });
 
-    setVerificationImage(file);
-    setVerificationError(null);
+      const maxWidth = 1600;
+      const scale = img.width > maxWidth ? maxWidth / img.width : 1;
+      const targetWidth = Math.round(img.width * scale);
+      const targetHeight = Math.round(img.height * scale);
 
-    // Get location metadata
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setLocationMetadata({
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
-            timestamp: new Date().toISOString()
-          });
-        },
-        (error) => {
-          console.warn('Location access denied:', error);
-          setLocationMetadata({
-            lat: 0,
-            lng: 0,
-            timestamp: new Date().toISOString()
-          });
-        }
-      );
+      const canvas = document.createElement('canvas');
+      canvas.width = targetWidth;
+      canvas.height = targetHeight;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('Canvas not supported');
+      ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+
+      // Progressive quality reduction
+      let quality = 0.8;
+      const minQuality = 0.4;
+      const step = 0.05;
+      let blob: Blob | null = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', quality));
+      if (!blob) throw new Error('Failed to encode image');
+
+      while (blob.size > 500 * 1024 && quality - step >= minQuality) {
+        quality = +(quality - step).toFixed(2);
+        blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', quality));
+        if (!blob) throw new Error('Failed to encode image');
+      }
+
+      // Final check
+      if (blob.size > 500 * 1024) {
+        setVerificationError('Unable to compress image below 500KB without excessive quality loss.');
+        URL.revokeObjectURL(objectUrl);
+        return null;
+      }
+
+      // Create File from blob; discard original file
+      const processedFile = new File([blob], `${(file.name || 'verification')}.jpg`.replace(/\.(png|jpeg|jpg)$/i, '.jpg'), { type: 'image/jpeg' });
+
+      setProcessedInfo({ width: targetWidth, height: targetHeight, sizeKB: Math.round(blob.size / 1024), quality });
+      URL.revokeObjectURL(objectUrl);
+      return processedFile;
+    } catch (e) {
+      console.error('Image processing failed:', e);
+      setVerificationError(e instanceof Error ? e.message : 'Image processing failed');
+      return null;
     }
   };
 
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setVerificationError(null);
+    setVerificationProcessing(true);
+    setProcessedInfo(null);
+
+    const processed = await processImage(file);
+    if (!processed) {
+      setVerificationImage(null);
+      setVerificationProcessing(false);
+      return;
+    }
+
+    setVerificationImage(processed);
+    // Set preview URL and timestamp; remove any location collection
+    if (previewSrc) {
+      URL.revokeObjectURL(previewSrc);
+    }
+    const objectUrl = URL.createObjectURL(processed);
+    setPreviewSrc(objectUrl);
+    const now = new Date();
+    const ts = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+    setUploadTimestampStr(ts);
+    setVerificationProcessing(false);
+  };
+
   const handleVerificationSubmit = async () => {
+    if (isSuspended) {
+      alert('Account suspended - please contact support');
+      return;
+    }
     if (!verificationImage) {
       setVerificationError('Please select an image first');
       return;
@@ -100,7 +157,6 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ project, u
         .insert({
           project_id: currentProject.id,
           image_url: publicUrl,
-          location_metadata: locationMetadata,
           uploaded_by: user?.id,
           created_at: new Date().toISOString()
         });
@@ -137,7 +193,9 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ project, u
   const [verificationUploading, setVerificationUploading] = useState(false);
   const [verificationError, setVerificationError] = useState<string | null>(null);
   const [verificationSuccess, setVerificationSuccess] = useState(false);
-  const [locationMetadata, setLocationMetadata] = useState<{lat: number, lng: number, timestamp: string} | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewSrc, setPreviewSrc] = useState<string | null>(null);
+  const [uploadTimestampStr, setUploadTimestampStr] = useState<string | null>(null);
   
   // QR code states
   const [qrLoading, setQrLoading] = useState(false);
@@ -146,6 +204,33 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ project, u
   useEffect(() => {
     setCurrentProject(project);
   }, [project]);
+
+  // Reset preview and stats whenever the image is removed
+  useEffect(() => {
+    if (!verificationImage) {
+      if (previewSrc) {
+        URL.revokeObjectURL(previewSrc);
+      }
+      setPreviewSrc(null);
+      setUploadTimestampStr(null);
+      setProcessedInfo(null);
+    }
+  }, [verificationImage]);
+
+  // Lock background scroll while modal is open and enable ESC to close
+  useEffect(() => {
+    if (previewOpen) {
+      const handleKey = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') setPreviewOpen(false);
+      };
+      document.body.style.overflow = 'hidden';
+      window.addEventListener('keydown', handleKey);
+      return () => {
+        document.body.style.overflow = '';
+        window.removeEventListener('keydown', handleKey);
+      };
+    }
+  }, [previewOpen]);
 
   const generateSlug = (base: string) => {
     return base.trim().toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
@@ -172,6 +257,10 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ project, u
   };
 
   const handlePublish = async () => {
+    if (isSuspended) {
+      alert('Account suspended - please contact support');
+      return;
+    }
     // Validate status transition
     const currentStatus = currentProject.status || 'unpublished';
     const isApproved = currentStatus === 'approved';
@@ -266,6 +355,12 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ project, u
 
       <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800">
         <div className="p-6 border-b border-slate-200 dark:border-slate-800">
+          {isSuspended && (
+            <div className="mb-4 rounded-lg border border-red-400 bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-200 p-4">
+              <p className="font-semibold">Account suspended - please contact support</p>
+              <p className="mt-2 text-sm">Your account is suspended. Contact support to restore access.</p>
+            </div>
+          )}
           <div className="flex justify-between items-start">
             <div>
               <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{currentProject.project_name || currentProject.id}</h1>
@@ -388,10 +483,14 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ project, u
               />
               <label
                 htmlFor="logo-upload"
-                className="inline-flex items-center px-3 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 cursor-pointer text-sm"
+                className="inline-flex items-center px-3 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 cursor-pointer text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                aria-disabled={isSuspended}
               >
                 Choose File
               </label>
+              {isSuspended && (
+                <div className="text-xs text-red-600 mt-2">Account suspended - uploads disabled</div>
+              )}
               {logoFileName && (
                 <div className="text-xs text-slate-500 dark:text-slate-400 mt-2">Selected: {logoFileName}</div>
               )}
@@ -406,6 +505,7 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ project, u
                 onChange={(e) => setCurrentProject(prev => ({ ...prev, slug: e.target.value }))}
                 className="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded px-3 py-2"
                 placeholder="my-awesome-project"
+                disabled={isSuspended}
               />
             </label>
 
@@ -471,13 +571,13 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ project, u
 
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mt-6">
               <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                <button onClick={handleSave} disabled={saving} className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm sm:text-base">{saving ? 'Saving...' : 'Save Changes'}</button>
-                <button onClick={() => setCurrentProject(project)} className="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-sm sm:text-base">Reset</button>
+                <button onClick={handleSave} disabled={saving || isSuspended} className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm sm:text-base">{saving ? 'Saving...' : 'Save Changes'}</button>
+                <button onClick={() => setCurrentProject(project)} disabled={isSuspended} className="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-sm sm:text-base disabled:opacity-50 disabled:cursor-not-allowed">Reset</button>
               </div>
               {currentProject.status !== 'approved' && (
                 <button
                   onClick={handlePublish}
-                  disabled={publishing}
+                  disabled={publishing || isSuspended}
                   className={`px-4 py-2 text-sm font-medium rounded-lg w-full sm:w-auto ${
                     currentProject.status === 'published' 
                       ? 'bg-orange-600 hover:bg-orange-700 text-white' 
@@ -503,12 +603,13 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ project, u
               <img 
                 src={currentProject.proof_photo_url} 
                 alt="Verification" 
-                className="w-full max-w-md h-48 object-cover rounded-lg border border-slate-200 dark:border-slate-700"
+                className="w-full max-w-md h-48 object-cover rounded-lg border border-slate-200 dark:border-slate-700 cursor-zoom-in"
+                onClick={() => { setPreviewSrc(currentProject.proof_photo_url); setPreviewOpen(true); }}
               />
             </div>
           )}
 
-          <div className="space-y-4">
+          <div className="space-y-4 md:space-y-0 md:grid md:grid-cols-2 md:gap-6">
             <div>
               <label className="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-2">
                 Upload Verification Photo
@@ -520,17 +621,26 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ project, u
                   onChange={handleImageUpload}
                   className="hidden"
                   id="verification-upload"
-                  disabled={verificationUploading}
+                  disabled={verificationUploading || verificationProcessing || isSuspended}
                 />
                 <label
                   htmlFor="verification-upload"
-                  className={`cursor-pointer flex flex-col items-center ${verificationUploading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  className={`cursor-pointer flex flex-col items-center ${verificationUploading || verificationProcessing ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
-                  <Upload className="w-12 h-12 text-slate-400 mb-2" />
+                  <Upload className={`w-12 h-12 text-slate-400 mb-2 ${verificationProcessing ? 'animate-spin' : ''}`} />
                   <span className="text-sm text-slate-600 dark:text-slate-400">
-                    {verificationImage ? verificationImage.name : 'Click to upload JPG or PNG (max 5MB)'}
+                    {verificationProcessing
+                      ? 'Processing image...'
+                      : verificationImage
+                        ? verificationImage.name
+                        : 'Click to upload JPG or PNG'}
                   </span>
                 </label>
+                {processedInfo && (
+                  <div className="mt-3 text-xs text-slate-600 dark:text-slate-400">
+                    Processed: {processedInfo.width}×{processedInfo.height}px · {processedInfo.sizeKB}KB · quality {Math.round(processedInfo.quality * 100)}%
+                  </div>
+                )}
               </div>
               {verificationError && (
                 <div className="mt-2 flex items-center text-red-600 text-sm">
@@ -541,24 +651,45 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ project, u
             </div>
 
             {verificationImage && (
-              <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-4">
+              <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-4 md:col-span-1">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center">
                     <CheckCircleIcon className="w-5 h-5 text-green-600 mr-2" />
                     <span className="text-sm text-slate-700 dark:text-slate-300">Image ready for upload</span>
                   </div>
                   <button
-                    onClick={() => setVerificationImage(null)}
+                    onClick={() => {
+                      setVerificationImage(null);
+                      if (previewSrc) {
+                        URL.revokeObjectURL(previewSrc);
+                      }
+                      setPreviewSrc(null);
+                      setUploadTimestampStr(null);
+                      setProcessedInfo(null);
+                    }}
                     className="text-red-600 hover:text-red-800 text-sm"
                   >
                     Remove
                   </button>
                 </div>
-                {locationMetadata && (
+                {uploadTimestampStr && (
                   <div className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-                    Location: {locationMetadata.lat.toFixed(6)}, {locationMetadata.lng.toFixed(6)}
-                    <br />
-                    Timestamp: {new Date(locationMetadata.timestamp).toLocaleString()}
+                    Timestamp: {uploadTimestampStr}
+                  </div>
+                )}
+                {processedInfo && (
+                  <div className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                    Final size: {processedInfo.sizeKB}KB · Dimensions: {processedInfo.width}×{processedInfo.height}px
+                  </div>
+                )}
+                {previewSrc && (
+                  <div className="mt-3">
+                    <img
+                      src={previewSrc}
+                      alt="Preview"
+                      className="w-full max-w-md max-h-64 object-contain rounded border border-slate-200 dark:border-slate-700 cursor-zoom-in"
+                      onClick={() => setPreviewOpen(true)}
+                    />
                   </div>
                 )}
               </div>
@@ -566,14 +697,14 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ project, u
 
             <button
               onClick={handleVerificationSubmit}
-              disabled={!verificationImage || verificationUploading}
-              className={`w-full py-2 px-4 rounded-lg font-medium transition-colors ${
-                !verificationImage || verificationUploading
+              disabled={!verificationImage || verificationUploading || verificationProcessing}
+              className={`w-full md:col-span-2 py-2 px-4 rounded-lg font-medium transition-colors ${
+                !verificationImage || verificationUploading || verificationProcessing
                   ? 'bg-slate-300 text-slate-500 cursor-not-allowed'
                   : 'bg-blue-600 text-white hover:bg-blue-700'
               }`}
             >
-              {verificationUploading ? 'Uploading...' : 'Submit Verification'}
+              {verificationUploading ? 'Uploading...' : verificationProcessing ? 'Processing...' : 'Submit Verification'}
             </button>
 
             {verificationSuccess && (
@@ -587,6 +718,31 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ project, u
           </div>
         </div>
       </div>
+
+      {/* Preview Modal */}
+      {previewOpen && previewSrc && (
+        <div
+          className="fixed inset-0 bg-black/70 z-[9999] flex items-center justify-center transition-opacity duration-300"
+          onClick={() => setPreviewOpen(false)}
+          aria-modal="true"
+          role="dialog"
+        >
+          <div className="relative max-w-[95vw] max-h-[85vh] p-2" onClick={(e) => e.stopPropagation()}>
+            <button
+              className="absolute top-2 right-2 bg-black/60 text-white rounded-full p-2 hover:bg-black/80 transition-colors duration-300"
+              onClick={() => setPreviewOpen(false)}
+              aria-label="Close preview"
+            >
+              ×
+            </button>
+            <img
+              src={previewSrc}
+              alt="Preview"
+              className="w-[90vw] h-[80vh] max-w-full max-h-[80vh] object-contain rounded shadow-lg transition-transform duration-300"
+            />
+          </div>
+        </div>
+      )}
 
       {/* QR code handled inline near slug; legacy section removed */}
     </div>

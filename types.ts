@@ -55,6 +55,7 @@ export interface Template {
       email: string;
       upi_id?: string | null;
       phone_number?: string | null;
+      status?: 'active' | 'suspended';
       total_earnings?: number;
       created_at?: string;
     }
