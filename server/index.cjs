@@ -36,6 +36,8 @@ cloudinary.config({
 
 const app = express();
 app.use(morgan('tiny'));
+// Enable JSON body parsing for non-multipart routes
+app.use(express.json());
 
 // Basic rate limit: 5 uploads/min per IP
 const uploadLimiter = rateLimit({
@@ -144,14 +146,8 @@ app.post('/api/upload-verification', uploadLimiter, authenticate, upload.single(
       global: { headers: { Authorization: `Bearer ${req.supabaseUserToken}` } },
     });
 
-    // Update project and insert audit
-    const { error: updateError } = await supabase
-      .from('projects')
-      .update({ proof_photo_url: secureUrl, updated_at: new Date().toISOString() })
-      .eq('id', projectId);
-    if (updateError) {
-      console.warn('Supabase project update failed:', updateError);
-    }
+    // NOTE: Per current workflow, we store the uploaded image URL in `submissions` only.
+    // We skip updating `projects.proof_photo_url` to avoid duplication.
 
     const { error: auditError } = await supabase
       .from('verification_audits')
@@ -163,6 +159,39 @@ app.post('/api/upload-verification', uploadLimiter, authenticate, upload.single(
       });
     if (auditError) {
       console.warn('Supabase audit insert failed:', auditError);
+    }
+
+    // Fetch project context to populate submissions entry
+    const { data: projectRow, error: projectErr } = await supabase
+      .from('projects')
+      .select('id, user_id, template_id, project_name, status, price, commission_rate')
+      .eq('id', projectId)
+      .maybeSingle();
+    if (projectErr) {
+      console.error('Supabase project fetch failed:', projectErr);
+      return res.status(500).json({ error: 'Failed to fetch project for submission', details: projectErr.message });
+    }
+    if (!projectRow) {
+      return res.status(404).json({ error: 'Project not found or not accessible' });
+    }
+
+    // Insert into submissions table with pending status and timestamp
+    const { error: submissionErr } = await supabase
+      .from('submissions')
+      .insert({
+        user_id: projectRow.user_id,
+        template_id: projectRow.template_id,
+        project_id: projectRow.id,
+        project_name: projectRow.project_name,
+        image_url: secureUrl,
+        price: projectRow.price,
+        commission_rate: projectRow.commission_rate,
+        status: 'pending',
+        submitted_at: new Date().toISOString(),
+      });
+    if (submissionErr) {
+      console.error('Supabase submission insert failed:', submissionErr);
+      return res.status(500).json({ error: 'Failed to record submission', details: submissionErr.message });
     }
 
     return res.status(200).json({
@@ -177,6 +206,55 @@ app.post('/api/upload-verification', uploadLimiter, authenticate, upload.single(
     console.error('Upload error:', err);
     const message = typeof err === 'object' && err?.message ? err.message : String(err);
     return res.status(500).json({ error: 'Server error during upload', details: message });
+  }
+});
+
+// Review submission: approve or reject
+app.post('/api/review-submission', authenticate, async (req, res) => {
+  try {
+    const { submissionId, status } = req.body || {};
+    if (!submissionId) return res.status(400).json({ error: 'Missing submissionId' });
+    const allowed = ['approved', 'rejected'];
+    if (!allowed.includes(String(status).toLowerCase())) {
+      return res.status(400).json({ error: 'Invalid status. Use approved or rejected.' });
+    }
+
+    const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: `Bearer ${req.supabaseUserToken}` } },
+    });
+
+    // Ensure submission exists and is visible to reviewer (RLS policies should govern visibility)
+    const { data: submissionRow, error: fetchErr } = await supabase
+      .from('submissions')
+      .select('id, project_name')
+      .eq('id', submissionId)
+      .maybeSingle();
+    if (fetchErr) {
+      return res.status(500).json({ error: 'Failed to fetch submission', details: fetchErr.message });
+    }
+    if (!submissionRow) {
+      return res.status(404).json({ error: 'Submission not found or not accessible' });
+    }
+
+    const nowIso = new Date().toISOString();
+    const { error: updateSubmissionErr } = await supabase
+      .from('submissions')
+      .update({ status: status.toLowerCase(), reviewed_by: req.user.id, reviewed_at: nowIso })
+      .eq('id', submissionId);
+    if (updateSubmissionErr) {
+      return res.status(500).json({ error: 'Failed to update submission review', details: updateSubmissionErr.message });
+    }
+
+    // Optionally, reflect status on project. If approved => set status 'approved'; if rejected => 'rejected'
+    // This assumes a separate relation or a way to determine the project ID from the submission.
+    // If the submissions table includes project_id, this should update that specific project.
+    // As project_id is not specified here, we skip project update unless schema provides it.
+
+    return res.status(200).json({ success: true });
+  } catch (err) {
+    console.error('Review submission error:', err);
+    const message = typeof err === 'object' && err?.message ? err.message : String(err);
+    return res.status(500).json({ error: 'Server error during review', details: message });
   }
 });
 

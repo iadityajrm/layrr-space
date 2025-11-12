@@ -250,7 +250,7 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ project, u
     }
     // Validate status transition
     const currentStatus = currentProject.status || 'unpublished';
-    const isApproved = currentStatus === 'approved';
+    const isApproved = (currentProject.approval_status || '') === 'approved';
     
     if (isApproved) {
       alert('Cannot modify status of approved projects');
@@ -387,6 +387,16 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ project, u
             <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">{currentProject.templates.use_cases}</p>
           )}
           <div className="space-y-4">
+            {/* Read-only Template Price display */}
+            <label className="block text-sm">
+              <div className="text-slate-600 dark:text-slate-300 mb-1">Template Price</div>
+              <input
+                value={`₹${Number(currentProject.price ?? currentProject.templates?.price ?? 0).toFixed(2)}`}
+                disabled
+                className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded px-3 py-2 cursor-not-allowed"
+                aria-readonly="true"
+              />
+            </label>
             <label className="block text-sm">
               <div className="text-slate-600 dark:text-slate-300 mb-1">Project Name</div>
               <input
@@ -409,7 +419,7 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ project, u
                       value={(currentProject as any)[genericField] || ''}
                       onChange={(e) => setCurrentProject(prev => ({ ...prev, [genericField]: e.target.value }))}
                       className="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded px-3 py-2"
-                      placeholder={`Enter ${semanticRole.toLowerCase()}`}
+                      placeholder={`Enter ${semanticRole}`}
                     />
                   </label>
                 ))}
@@ -557,11 +567,21 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ project, u
             </div>
 
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mt-6">
+              <div className="flex items-center gap-2">
+                <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${currentProject.status === 'published' ? 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300' : 'bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-300'}`}
+                  aria-label="Project Status">
+                  {(currentProject.status || 'unpublished').replace('_', ' ')}
+                </span>
+                <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${((currentProject.approval_status || '').toLowerCase() === 'approved') ? 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300' : ((currentProject.approval_status || '').toLowerCase() === 'rejected') ? 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300' : ((currentProject.approval_status || '').toLowerCase().includes('under')) ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300' : 'bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-300'}`}
+                  aria-label="Approval Status">
+                  {(currentProject.approval_status || 'pending').replace('_', ' ')}
+                </span>
+              </div>
               <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                 <button onClick={handleSave} disabled={saving || isSuspended} className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm sm:text-base">{saving ? 'Saving...' : 'Save Changes'}</button>
                 <button onClick={() => setCurrentProject(project)} disabled={isSuspended} className="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-sm sm:text-base disabled:opacity-50 disabled:cursor-not-allowed">Reset</button>
               </div>
-              {currentProject.status !== 'approved' && (
+              {(currentProject.approval_status || '').toLowerCase() !== 'approved' && (
                 <button
                   onClick={handlePublish}
                   disabled={publishing || isSuspended}

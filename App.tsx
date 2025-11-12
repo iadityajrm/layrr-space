@@ -108,6 +108,23 @@ function App() {
     }
   }, [session]);
 
+  // Subscribe to real-time project updates to reflect approval changes automatically
+  useEffect(() => {
+    if (!session?.user) return;
+    const channel = supabase
+      .channel('projects-realtime')
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'projects' }, (payload: any) => {
+        const updated = payload.new as Project;
+        setProjects(prev => prev.map(p => (p.id === updated.id ? { ...p, ...updated } : p)));
+        setSelectedProject(prev => (prev && prev.id === updated.id ? { ...prev, ...updated } : prev));
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [session]);
+
   const fetchProfile = async () => {
     if (!session?.user) return;
     const uid = session.user.id;
@@ -207,9 +224,12 @@ function App() {
       user_id: session.user.id,
       template_id: templateToBuy.id,
       template_category: templateToBuy.category,
+      price: templateToBuy.price ?? 0,
+      commission_rate: templateToBuy.commission_rate ?? 0,
       project_name: templateToBuy.title || 'New Project', // Use template title as default project name
       slug: `${templateToBuy.slug}-${Date.now()}`, // Generate a unique slug
-      status: 'pending_verification',
+      status: 'unpublished',
+      approval_status: 'pending',
       created_at: new Date().toISOString(),
     };
 

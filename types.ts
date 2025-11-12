@@ -26,7 +26,10 @@ export interface Template {
       project_name: string;
       slug: string;
       status: string;
+      approval_status?: string | null;
       proof_photo_url?: string | null;
+      price?: number | null;
+      commission_rate?: number | null;
       created_at?: string;
       updated_at?: string;
       template_category?: string | null;

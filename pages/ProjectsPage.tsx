@@ -12,6 +12,10 @@ interface ProjectsPageProps {
 
 const getStatusChipClass = (status: string) => {
   switch (status.toLowerCase()) {
+    case 'published':
+      return 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300';
+    case 'unpublished':
+      return 'bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-300';
     case 'active':
       return 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300';
     case 'completed':
@@ -19,6 +23,22 @@ const getStatusChipClass = (status: string) => {
     case 'pending_verification':
     case 'pending verification':
       return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300';
+    default:
+      return 'bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-300';
+  }
+};
+
+const getApprovalChipClass = (approval: string | undefined | null) => {
+  const val = (approval || '').toLowerCase();
+  switch (val) {
+    case 'approved':
+      return 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300';
+    case 'under review':
+    case 'under_review':
+      return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300';
+    case 'rejected':
+      return 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300';
+    case 'pending':
     default:
       return 'bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-300';
   }
@@ -88,7 +108,8 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({ projects, onSelectPr
               <tr>
                 <th scope="col" className="px-6 py-3">Project Name</th>
                 <th scope="col" className="px-6 py-3">Template</th>
-                <th scope="col" className="px-6 py-3">Status</th>
+                <th scope="col" className="px-6 py-3">Project Status</th>
+                <th scope="col" className="px-6 py-3">Approval Status</th>
                 <th scope="col" className="px-6 py-3">Created</th>
                 <th scope="col" className="px-6 py-3">Actions</th>
               </tr>
@@ -114,8 +135,13 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({ projects, onSelectPr
                   </th>
                   <td className="px-6 py-4">{Array.isArray(project.templates) ? project.templates[0]?.title : (project.templates as any)?.title || 'N/A'}</td>
                   <td className="px-6 py-4">
-                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusChipClass(project.status)}`}>
-                      {project.status.replace('_', ' ')}
+                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusChipClass(project.status || '')}`}>
+                      {(project.status || '').replace('_', ' ') || 'unpublished'}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${getApprovalChipClass(project.approval_status)}`}>
+                      {(project.approval_status || 'pending').replace('_', ' ')}
                     </span>
                   </td>
                   <td className="px-6 py-4">{project.created_at ? new Date(project.created_at).toLocaleDateString() : ''}</td>
