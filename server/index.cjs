@@ -39,6 +39,18 @@ app.use(morgan('tiny'));
 // Enable JSON body parsing for non-multipart routes
 app.use(express.json());
 
+// Simple health endpoint to diagnose configuration and proxy issues
+app.get('/api/health', (req, res) => {
+  const missingEnv = requiredEnv.filter(k => !process.env[k]);
+  res.status(200).json({
+    ok: missingEnv.length === 0,
+    server_port: PORT,
+    proxy_expected: '/api -> http://localhost:4000',
+    missing_env: missingEnv,
+    env_present: requiredEnv.filter(k => !!process.env[k]),
+  });
+});
+
 // Basic rate limit: 5 uploads/min per IP
 const uploadLimiter = rateLimit({
   windowMs: 60 * 1000,

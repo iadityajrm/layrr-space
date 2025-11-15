@@ -138,11 +138,10 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ project, u
         body: formData,
       });
       if (!resp.ok) {
-        let errMsg = 'Upload failed';
+        let errMsg = `Upload failed (status ${resp.status})`;
         try {
           const errJson = await resp.json();
-          errMsg = errJson?.error || errMsg;
-          if (errJson?.details) errMsg += `: ${errJson.details}`;
+          if (errJson?.error) errMsg = `${errJson.error}${errJson?.details ? `: ${errJson.details}` : ''}`;
         } catch {
           const errText = await resp.text().catch(() => '');
           if (errText) errMsg = errText;
